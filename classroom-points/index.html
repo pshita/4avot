@@ -1,0 +1,3399 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>נקודות</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EA;
+    --paper-dark:#EFEADB;
+    --ink:#22304A;
+    --ink-soft:#4B5C79;
+    --line:#D9D2BC;
+    --gold:#B8902E;
+    --gold-bright:#D8AC3E;
+    --gold-bg:#FBF1D9;
+    --green:#2E7D4F;
+    --green-bg:#E3F3E9;
+    --danger:#9C3B3B;
+    --danger-bg:#F5E4E1;
+    --radius:10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html,body{
+    margin:0; padding:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Rubik', sans-serif;
+    overflow-x: hidden;
+  }
+
+  body{
+    background-image:
+      linear-gradient(var(--paper) 0%, var(--paper) 100%),
+      repeating-linear-gradient(0deg, transparent, transparent 38px, rgba(34,48,74,0.035) 39px);
+  }
+
+  header{
+    padding: 32px 24px 20px;
+    text-align:center;
+    position: relative;
+  }
+
+  header::after{
+    content:"";
+    display:block;
+    width:120px;
+    height:3px;
+    background: var(--gold);
+    margin: 14px auto 0;
+    border-radius: 2px;
+  }
+
+  h1{
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 900;
+    font-size: clamp(26px, 4vw, 38px);
+    margin: 0;
+    color: var(--ink);
+    letter-spacing: 0.5px;
+  }
+
+  .subtitle{
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+    font-weight: 500;
+  }
+
+  .board-col{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 14px;
+    flex: 1 1 480px;
+    max-width: 900px;
+  }
+
+  .metivta-board-col{
+    flex: 1 1 260px;
+    max-width: 400px;
+  }
+
+  .toolbar{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+
+  .status{
+    font-size: 13px;
+    color: var(--ink-soft);
+    min-height: 18px;
+  }
+
+  button.reset-btn{
+    background: var(--paper);
+    border: 1.5px solid var(--danger);
+    color: var(--danger);
+    font-family: 'Rubik', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  button.reset-btn:hover{
+    background: var(--danger);
+    color: var(--paper);
+  }
+  button.reset-btn:active{ transform: scale(0.97); }
+
+  button.archive-btn{
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    font-family: 'Rubik', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  button.archive-btn:hover{
+    background: var(--ink);
+    color: var(--paper);
+  }
+  button.archive-btn:active{ transform: scale(0.97); }
+
+  .archive-view{
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  .archive-header{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .archive-title{
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .archive-empty{
+    text-align: center;
+    color: var(--ink-soft);
+    padding: 40px 0;
+  }
+
+  .archive-entry{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 2px 0 var(--line), 0 8px 24px rgba(34,48,74,0.08);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .weekly-tables-scroll{
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .weekly-tables-scroll .archive-entry{
+    flex: 0 0 auto;
+    margin-bottom: 0;
+    width: 440px;
+  }
+  .weekly-tables-scroll .archive-table{
+    width: 440px;
+    table-layout: fixed;
+  }
+
+  .archive-date{
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+
+  .weekly-header-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .export-btn{
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    font-family: 'Rubik', sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .export-btn:hover{
+    background: var(--gold-bright);
+  }
+
+  table.archive-table{
+    border-collapse: collapse;
+    width: 100%;
+  }
+  table.archive-table th{
+    background: var(--paper-dark);
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 8px 4px;
+    border-bottom: 2px solid var(--gold);
+    border-left: 1px solid var(--line);
+    text-align: center;
+  }
+  table.archive-table th:first-child{ border-left: none; }
+  table.archive-table td{
+    text-align: center;
+    font-size: 13px;
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+  }
+  table.archive-table td:first-child{ border-left: none; white-space: nowrap; }
+  table.archive-table th:first-child{ white-space: nowrap; }
+  table.archive-table tr:nth-child(even){ background: #FCFBF6; }
+
+  .boards{
+    display:flex;
+    gap: clamp(16px, 2vw, 32px);
+    justify-content:center;
+    align-items:flex-start;
+    flex-wrap: wrap;
+    padding: 6px;
+    width: 100%;
+  }
+
+  .board-wrap{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 2px 0 var(--line), 0 8px 24px rgba(34,48,74,0.08);
+    width: 100%;
+  }
+
+  .table-scroll{
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .board-title{
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    padding: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  table{
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  thead th{
+    background: var(--paper-dark);
+    color: var(--ink);
+    font-size: clamp(11px, 4vw, 20px);
+    font-weight: 700;
+    padding: clamp(4px, 0.8vw, 8px) 6px;
+    border-bottom: 2px solid var(--gold);
+    border-left: 1px solid var(--line);
+    white-space: nowrap;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .th-inner{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  thead th:first-child{ border-left: 1px solid var(--line); border-top-right-radius: 14px; }
+  thead th:last-child{ border-top-left-radius: 14px; }
+  tbody tr:last-child td:first-child{ border-bottom-right-radius: 14px; }
+  tbody tr:last-child td:last-child{ border-bottom-left-radius: 14px; }
+
+  .merged-dropdown{
+    position: relative;
+    display: inline-block;
+    text-align: center;
+  }
+
+  .merged-dropdown-toggle{
+    font-family: 'Rubik', sans-serif;
+    font-weight: 700;
+    font-size: clamp(11px, 3vw, 20px);
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    max-width: 100%;
+    text-align: center;
+  }
+  .archive-date .merged-dropdown-toggle{
+    color: var(--paper);
+  }
+  .merged-dropdown-toggle:focus{
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  .merged-dropdown-list{
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 30;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(34,48,74,0.18);
+    min-width: 110px;
+    overflow: hidden;
+  }
+  .merged-dropdown-list.open{
+    display: block;
+  }
+  .merged-dropdown-list-right{
+    left: auto;
+    right: 0;
+  }
+
+  .merged-dropdown-option{
+    padding: 10px 14px;
+    font-family: 'Rubik', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .merged-dropdown-option-all{
+    border-top: 1px solid var(--line);
+    margin-top: 2px;
+    color: var(--gold);
+    font-weight: 700;
+  }
+  .merged-dropdown-option:hover{
+    background: var(--gold-bg);
+  }
+
+  .col-reset-btn{
+    font-family: 'Rubik', sans-serif;
+    font-weight: 700;
+    font-size: clamp(12px, 4.5vw, 24px);
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 8px;
+    text-align: center;
+  }
+  .col-reset-btn:hover{
+    color: var(--gold);
+  }
+
+  tbody td{
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    padding: 11px 2px;
+  }
+  tbody td:first-child{ border-left: 1px solid var(--line); }
+
+  tbody tr:nth-child(even){ background: #FCFBF6; }
+  tbody tr:hover{ background: var(--gold-bg); }
+
+  .num-cell{
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .num-cell .cell-text{
+    font-family: 'Rubik', sans-serif;
+    font-weight: 700;
+    font-size: clamp(14px, 5cqw, 36px);
+  }
+
+  .cell-text{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    height: 61px;
+    overflow: hidden;
+  }
+
+  @keyframes flashYellowBg{
+    0%, 100% { background-color: transparent; }
+    50% { background-color: #FFD54A; }
+  }
+  tr.flash-yellow td{
+    animation: flashYellowBg 1s ease-in-out 3;
+  }
+
+  .total-cell{
+    color: var(--ink-soft);
+    background: rgba(184,144,46,0.08);
+  }
+  .total-cell .cell-text{
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 800;
+    font-size: clamp(16px, 6.5vw, 40px);
+  }
+
+  .point-cell{
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.12s ease;
+  }
+
+  .point-cell .point-val{
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 800;
+    font-size: clamp(16px, 6.5vw, 40px);
+    color: var(--ink-soft);
+    transition: transform 0.12s ease, color 0.12s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 61px;
+    overflow: hidden;
+    min-width: 1em;
+  }
+
+  .point-cell.active{
+    background: var(--green-bg);
+  }
+  .point-cell.active .point-val{
+    color: var(--green);
+    transform: scale(1.1);
+  }
+
+  .purchase-cell.has-purchases{
+    background: var(--danger-bg);
+  }
+  .purchase-cell.has-purchases .point-val{
+    color: var(--danger);
+    transform: scale(1.1);
+  }
+
+  .minus-cell.has-minus{
+    background: var(--danger-bg);
+  }
+  .minus-cell.has-minus .point-val{
+    color: var(--danger);
+    transform: scale(1.1);
+  }
+
+  .point-cell:active .point-val{
+    transform: scale(0.9);
+  }
+
+  footer{
+    text-align:center;
+    padding: 40px 20px 40px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(34,48,74,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+
+  .modal-box{
+    background: var(--paper);
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    text-align: center;
+  }
+
+  .modal-msg{
+    font-size: 16px;
+    color: var(--ink);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .modal-btns{
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .modal-btn{
+    font-family: 'Rubik', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 22px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: 1.5px solid transparent;
+  }
+
+  .modal-btn-confirm{
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .modal-btn-confirm:hover{ opacity: 0.9; }
+
+  .modal-btn-cancel{
+    background: var(--paper);
+    color: var(--ink-soft);
+    border-color: var(--line);
+  }
+  .modal-btn-cancel:hover{ background: var(--paper-dark); }
+
+  @media (max-width: 720px){
+    .boards{ flex-direction: column; align-items: center; }
+    .board-wrap{ width: 100%; max-width: 480px; }
+  }
+
+  @media (max-width: 200px){
+    .col-hide-narrow{ display: none !important; }
+    col.col-hide-narrow{ width: 0 !important; }
+    col:not(.col-hide-narrow){ width: 33.33% !important; }
+  }
+
+  .lock-screen{
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .lock-box{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 2px 0 var(--line), 0 8px 24px rgba(34,48,74,0.08);
+    padding: 32px 28px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .lock-title{
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 900;
+    font-size: 24px;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+
+  .lock-sub{
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+  }
+
+  .lock-input{
+    width: 100%;
+    font-family: 'Rubik', sans-serif;
+    font-size: 20px;
+    text-align: center;
+    letter-spacing: 4px;
+    padding: 12px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .lock-input:focus{
+    outline: none;
+    border-color: var(--gold);
+  }
+
+  .lock-error{
+    color: var(--danger);
+    font-size: 13px;
+    min-height: 18px;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div id="appContent">
+  <div class="boards" id="boards"></div>
+
+  <div class="archive-view" id="todaySummary" style="padding: 0 20px 20px; max-width: 900px; margin: 0 auto;"></div>
+
+  <div class="archive-view" id="frequentFlyerView" style="display:none; max-width: 1200px;"></div>
+
+  <div class="archive-view" id="metivtaView" style="display:none; max-width: 1600px;"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, setDoc, onSnapshot, runTransaction,
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { firebaseConfig } from "../assets/js/firebase-config.js";
+
+window.addEventListener('error', (ev) => {
+  showStartupError(ev.error || ev.message || ev);
+});
+window.addEventListener('unhandledrejection', (ev) => {
+  showStartupError(ev.reason);
+});
+
+const CATEGORIES = [
+  { key: 'c1', label: '8:10', value: 3 },
+  { key: 'c2', label: 'קרבנות', value: 1 },
+  { key: 'c3', label: 'תפילה', value: 2 },
+  { key: 'c4', label: '11:23', value: 1 },
+  { key: 'c5', label: '+', value: 1, resettable: true, cumulativeKey: 'c5Total' },
+  { key: 'c6', label: 'מקווה', value: 1 },
+  { key: 'c7', label: '8:45', value: 1 },
+  { key: 'c8', label: '12:48', value: 1 }
+];
+
+const MERGE_GROUPS = [
+  ['c1', 'c7', 'c4', 'c8'],
+  ['c5', 'c2', 'c3']
+];
+
+const STUDENT_NAMES = [
+  'צאלי', 'ישרוליק', 'נתנאל', 'מענדי ה.', 'מענדי ח.', 'אלעאי', 'יהונתן', 'איתן', 'מענדי ל.', 'שלוימי', 'מוישלה', 'לוי ס.',
+  'שמוליק ע.', 'מולי', 'שלום', 'חננאל', 'שמוליק צ.', 'אושר', 'שמעון', 'מוטי', 'לוי ק.', 'נועם', 'משה'
+];
+
+function studentName(id){
+  return STUDENT_NAMES[id - 1] || id;
+}
+
+const TOTAL_STUDENTS = 23;
+const STORAGE_KEY = 'classroom-points-v1';
+const FIRESTORE_COLLECTION = 'classroom_points';
+
+const firebaseApp = initializeApp(firebaseConfig);
+const firestoreDb = getFirestore(firebaseApp);
+const stateDocRef = doc(firestoreDb, FIRESTORE_COLLECTION, STORAGE_KEY);
+
+let lastSyncedStateJson = null;
+
+async function storageGet(){
+  try{
+    const snap = await getDoc(stateDocRef);
+    if (snap.exists()){
+      const json = JSON.stringify(snap.data());
+      lastSyncedStateJson = json;
+      return { value: json };
+    }
+    return null;
+  } catch(e){
+    return null;
+  }
+}
+
+async function storageSet(value){
+  try{
+    const body = JSON.parse(value);
+    await setDoc(stateDocRef, body);
+    lastSyncedStateJson = value;
+    return { value };
+  } catch(e){
+    return null;
+  }
+}
+
+function subscribeToRemoteStateChanges(){
+  onSnapshot(stateDocRef, (snap) => {
+    if (!snap.exists() || snap.metadata.hasPendingWrites) return;
+    const json = JSON.stringify(snap.data());
+    if (json === lastSyncedStateJson) return;
+    lastSyncedStateJson = json;
+    let parsed;
+    try{ parsed = JSON.parse(json); } catch(e){ return; }
+    if (!parsed || !Array.isArray(parsed.students) || parsed.students.length !== TOTAL_STUDENTS) return;
+    state = parsed;
+    render();
+    if (document.getElementById('frequentFlyerView').style.display !== 'none') renderFrequentFlyerView();
+    if (document.getElementById('metivtaView').style.display !== 'none') renderMetivtaView();
+  }, (err) => {
+    // realtime sync unavailable; local get/set on next load still works
+  });
+}
+
+async function saveCsvFile(filename, csv){
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+let state = null; // { students: [{id, cumulative, cats:{c1,c2,c3,c4}}] }
+
+const METIVTA_EXTRA_NAMES = [
+  'יהונתן', 'נריה', 'יהודה', 'חסדיאל', 'אוריאל', 'מענדל', 'שניאור', 'מענדי דר.', 'מענדי זכ.', 'עוזי', 'מענדי יא.',
+  'אופיר', 'לוי', 'מענדי מז.', 'מענדי מע.', 'אברמי', 'שמואל', 'מענדי סמ.', 'ברוכי', 'איזיק', 'בער', 'רמי', 'ניתאי'
+];
+
+function metivtaExtraName(id){
+  return METIVTA_EXTRA_NAMES[id - 1] || String(id);
+}
+
+function defaultState(){
+  const students = [];
+  for (let i = 1; i <= TOTAL_STUDENTS; i++){
+    students.push({ id: i, cumulative: 0, cats: { c1:0, c2:0, c3:0, c4:0, c5:0, c6:0, c7:0, c8:0 }, purchases: 0, c5Total: 0, minusTotal: 0, frequent: { mikvaot: 0, rambam: 0 }, frequentFrozen: { mikvaot: 0, rambam: 0 }, metivta: { attendance: 0, behavior: 0 }, metivtaFrozen: { attendance: 0, behavior: 0 } });
+  }
+  const metivtaExtra = [];
+  for (let i = 1; i <= 23; i++){
+    metivtaExtra.push({ id: i, metivta: { attendance: 0, behavior: 0 }, metivtaFrozen: { attendance: 0, behavior: 0 } });
+  }
+  return { students, metivtaExtra, mergedActive: MERGE_GROUPS.map(g => g[0]), minusShopActive: 'minus', archive: [], lastActivityDate: null, lastAutoResetDate: null };
+}
+
+function setStatus(msg){
+  const el = document.getElementById('statusEl');
+  if (el) el.textContent = msg;
+}
+
+async function loadState(){
+  try{
+    const result = await storageGet();
+    if (result && result.value){
+      const parsed = JSON.parse(result.value);
+      if (parsed && Array.isArray(parsed.students) && parsed.students.length === TOTAL_STUDENTS){
+        if (!Array.isArray(parsed.mergedActive) || parsed.mergedActive.length !== MERGE_GROUPS.length){
+          parsed.mergedActive = MERGE_GROUPS.map(g => g[0]);
+        }
+        if (parsed.minusShopActive !== 'minus' && parsed.minusShopActive !== 'shop'){
+          parsed.minusShopActive = 'minus';
+        }
+        parsed.students.forEach(s => {
+          if (typeof s.purchases !== 'number') s.purchases = 0;
+          if (!s.cats) s.cats = {};
+          if (typeof s.cats.c5 !== 'number') s.cats.c5 = 0;
+          if (typeof s.cats.c6 !== 'number') s.cats.c6 = 0;
+          if (typeof s.cats.c7 !== 'number') s.cats.c7 = 0;
+          if (typeof s.cats.c8 !== 'number') s.cats.c8 = 0;
+          if (!s.frequent) s.frequent = { mikvaot: 0, rambam: 0 };
+          if (!s.frequentFrozen) s.frequentFrozen = { mikvaot: s.frequent.mikvaot || 0, rambam: s.frequent.rambam || 0 };
+          if (!s.metivta) s.metivta = { attendance: 0, behavior: 0 };
+          if (!s.metivtaFrozen) s.metivtaFrozen = { attendance: s.metivta.attendance || 0, behavior: s.metivta.behavior || 0 };
+          if (typeof s.c5Total !== 'number') s.c5Total = 0;
+          if (typeof s.minusTotal !== 'number') s.minusTotal = 0;
+        });
+        if (!Array.isArray(parsed.metivtaExtra) || parsed.metivtaExtra.length !== 23){
+          const existing = Array.isArray(parsed.metivtaExtra) ? parsed.metivtaExtra : [];
+          const byId = {};
+          existing.forEach(s => { byId[s.id] = s; });
+          const metivtaExtra = [];
+          for (let i = 1; i <= 23; i++){
+            metivtaExtra.push(byId[i] || { id: i, metivta: { attendance: 0, behavior: 0 }, metivtaFrozen: { attendance: 0, behavior: 0 } });
+          }
+          parsed.metivtaExtra = metivtaExtra;
+        }
+        if (!Array.isArray(parsed.archive)) parsed.archive = [];
+        {
+          const dailyEntries = parsed.archive.filter(e => e.type !== 'weekly');
+          const weeklyEntries = parsed.archive.filter(e => e.type === 'weekly');
+          const MAX_DAILY = 90;
+          const MAX_WEEKLY = 26;
+          if (dailyEntries.length > MAX_DAILY || weeklyEntries.length > MAX_WEEKLY){
+            const keptDaily = dailyEntries.slice(0, MAX_DAILY);
+            const keptWeekly = weeklyEntries.slice(0, MAX_WEEKLY);
+            parsed.archive = parsed.archive.filter(e => keptDaily.includes(e) || keptWeekly.includes(e));
+          }
+        }
+        if (!parsed.testWeekCleanupDone){
+          const cleanupPrevWeekStart = getWeekStart(new Date());
+          cleanupPrevWeekStart.setDate(cleanupPrevWeekStart.getDate() - 7);
+          const cleanupPrevWeekKey = getWeekKey(cleanupPrevWeekStart);
+          parsed.archive = parsed.archive.filter(e => !(e.type === 'weekly' && e.weekKey === cleanupPrevWeekKey));
+          parsed.testWeekCleanupDone = true;
+        }
+        if (!parsed.fixTzaali20260908){
+          const tzaali = parsed.students.find(s => s.id === 1);
+          if (tzaali){
+            let plusReduceLeft = 32;
+            const c5TotalReduce = Math.min(plusReduceLeft, tzaali.c5Total || 0);
+            tzaali.c5Total = (tzaali.c5Total || 0) - c5TotalReduce;
+            plusReduceLeft -= c5TotalReduce;
+            if (plusReduceLeft > 0 && tzaali.cats){
+              const c5Reduce = Math.min(plusReduceLeft, tzaali.cats.c5 || 0);
+              tzaali.cats.c5 = (tzaali.cats.c5 || 0) - c5Reduce;
+            }
+            tzaali.minusTotal = Math.min(0, (tzaali.minusTotal || 0) + 28);
+          }
+          parsed.fixTzaali20260908 = true;
+        }
+        if (typeof parsed.lastActivityDate === 'undefined') parsed.lastActivityDate = null;
+        if (typeof parsed.lastAutoResetDate === 'undefined') parsed.lastAutoResetDate = null;
+        state = parsed;
+        return;
+      }
+    }
+  } catch(e){
+    // key not found or storage error - fall through to default
+  }
+  state = defaultState();
+}
+
+async function saveState(){
+  try{
+    setStatus('שומר…');
+    const res = await storageSet(JSON.stringify(state));
+    if (!res){
+      setStatus('שמירה נכשלה');
+      setTimeout(() => setStatus(''), 3000);
+      return;
+    }
+    setStatus('נשמר');
+    setTimeout(() => setStatus(''), 1200);
+  } catch(e){
+    setStatus('שגיאת שמירה');
+    setTimeout(() => setStatus(''), 3000);
+  }
+}
+
+function studentTotal(student){
+  const todayCats = CATEGORIES.reduce((sum, c) => sum + (student.cats[c.key] || 0), 0);
+  const todayPurchaseCost = (student.purchases || 0) * PURCHASE_COST;
+  const todayNet = todayCats + (student.c5Total || 0) + (student.minusTotal || 0) - todayPurchaseCost;
+
+  const archiveDailyEntries = (state.archive || []).filter(e => e.type !== 'weekly');
+  const archiveSum = archiveDailyEntries.reduce((sum, entry) => {
+    const s = (entry.students || []).find(x => x.id === student.id);
+    if (!s) return sum;
+    const catsSum = CATEGORIES.reduce((sum2, c) => sum2 + ((s.cats && s.cats[c.key]) || 0), 0);
+    const purchaseCost = (s.purchases || 0) * PURCHASE_COST;
+    return sum + catsSum + (s.minusTotal || 0) - purchaseCost;
+  }, 0);
+
+  return todayNet + archiveSum;
+}
+
+function runRaffle(){
+  const candidates = state.students.filter(s => !s.cats.c5);
+  if (candidates.length === 0){
+    showModal('כל התלמידים כבר קיבלו נקודה בסיבוב הנוכחי של "+".', { showCancel: false, confirmText: 'הבנתי' });
+    return;
+  }
+  const winner = candidates[Math.floor(Math.random() * candidates.length)];
+  highlightWinner(winner.id);
+}
+
+function highlightWinner(studentId){
+  const rows = document.querySelectorAll('tr[data-student-id="' + studentId + '"]');
+  rows.forEach(row => {
+    row.classList.remove('flash-yellow');
+    void row.offsetWidth;
+    row.classList.add('flash-yellow');
+    setTimeout(() => { row.classList.remove('flash-yellow'); }, 3100);
+  });
+}
+
+function toggleCell(studentId, catKey){
+  requireEditAccess(() => {
+    const student = state.students.find(s => s.id === studentId);
+    if (!student) return;
+    const category = CATEGORIES.find(c => c.key === catKey);
+    student.cats[catKey] = student.cats[catKey] ? 0 : category.value;
+    markActivity();
+    render();
+    saveState();
+  });
+}
+
+const PURCHASE_COST = 8;
+
+function showModal(message, options){
+  options = options || {};
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const box = document.createElement('div');
+  box.className = 'modal-box';
+
+  const msg = document.createElement('div');
+  msg.className = 'modal-msg';
+  msg.textContent = message;
+  box.appendChild(msg);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'modal-btns';
+
+  if (options.showCancel !== false){
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'modal-btn modal-btn-cancel';
+    cancelBtn.textContent = options.cancelText || 'ביטול';
+    cancelBtn.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      if (options.onCancel) options.onCancel();
+    });
+    btnRow.appendChild(cancelBtn);
+  }
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'modal-btn modal-btn-confirm';
+  confirmBtn.textContent = options.confirmText || 'אישור';
+  confirmBtn.addEventListener('click', () => {
+    document.body.removeChild(overlay);
+    if (options.onConfirm) options.onConfirm();
+  });
+  btnRow.appendChild(confirmBtn);
+
+  box.appendChild(btnRow);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+function setMergedActive(groupIndex, key){
+  state.mergedActive[groupIndex] = key;
+  render();
+  saveState();
+}
+
+function setMinusShopActive(value){
+  state.minusShopActive = value;
+  render();
+  saveState();
+}
+
+function resetColumn(catKey){
+  requireEditAccess(() => {
+    const category = CATEGORIES.find(c => c.key === catKey);
+    showModal('לאפס את טור "' + category.label + '"? הנקודות שנצברו יתווספו לסה"כ הכולל.', {
+      confirmText: 'אישור',
+      cancelText: 'ביטול',
+      onConfirm: async () => {
+        state.students.forEach(s => {
+          s.cumulative += (s.cats[catKey] || 0);
+          if (category.cumulativeKey){
+            s[category.cumulativeKey] = (s[category.cumulativeKey] || 0) + (s.cats[catKey] || 0);
+          }
+          s.cats[catKey] = 0;
+        });
+        render();
+        await saveState();
+      }
+    });
+  });
+}
+
+function adjustMinus(studentId, delta){
+  const student = state.students.find(s => s.id === studentId);
+  if (!student) return;
+  let newTotal = (student.minusTotal || 0) + delta;
+  if (newTotal > 0) newTotal = 0;
+  student.minusTotal = newTotal;
+  markActivity();
+  render();
+  saveState();
+}
+
+function showMinusPicker(studentId){
+  requireEditAccess(() => {
+    const student = state.students.find(s => s.id === studentId);
+    if (student && (student.minusTotal || 0) === 0){
+      adjustMinus(studentId, -1);
+    } else {
+      showMinusPickerModal(studentId);
+    }
+  });
+}
+
+function showMinusPickerModal(studentId){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const box = document.createElement('div');
+  box.className = 'modal-box';
+
+  const msg = document.createElement('div');
+  msg.className = 'modal-msg';
+  msg.textContent = 'בחר ערך להוספה:';
+  box.appendChild(msg);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'modal-btns';
+
+  const minusBtn = document.createElement('button');
+  minusBtn.className = 'modal-btn modal-btn-confirm';
+  minusBtn.textContent = '−1';
+  minusBtn.addEventListener('click', () => {
+    document.body.removeChild(overlay);
+    adjustMinus(studentId, -1);
+  });
+  btnRow.appendChild(minusBtn);
+
+  const plusBtn = document.createElement('button');
+  plusBtn.className = 'modal-btn modal-btn-confirm';
+  plusBtn.textContent = '+1';
+  plusBtn.addEventListener('click', () => {
+    document.body.removeChild(overlay);
+    adjustMinus(studentId, 1);
+  });
+  btnRow.appendChild(plusBtn);
+
+  box.appendChild(btnRow);
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'modal-btn modal-btn-cancel';
+  cancelBtn.textContent = 'ביטול';
+  cancelBtn.style.marginTop = '10px';
+  cancelBtn.addEventListener('click', () => {
+    document.body.removeChild(overlay);
+  });
+  box.appendChild(cancelBtn);
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+function makePurchase(studentId){
+  requireEditAccess(() => {
+    const student = state.students.find(s => s.id === studentId);
+    if (!student) return;
+    const total = studentTotal(student);
+    if (total < PURCHASE_COST){
+      showModal('אין מספיק נקודות לקניה (נדרשות ' + PURCHASE_COST + ' נקודות).', { showCancel: false, confirmText: 'הבנתי' });
+      return;
+    }
+    showModal('לאשר קניה תמורת ' + PURCHASE_COST + ' נקודות?', {
+      confirmText: 'אישור',
+      cancelText: 'ביטול',
+      onConfirm: () => {
+        student.cumulative -= PURCHASE_COST;
+        student.purchases = (student.purchases || 0) + 1;
+        markActivity();
+        render();
+        saveState();
+      }
+    });
+  });
+}
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function markActivity(){
+  state.lastActivityDate = todayStr();
+}
+
+function getWeekStart(date){
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+function getWeekKey(date){
+  const ws = getWeekStart(date);
+  return ws.getFullYear() + '-' + String(ws.getMonth() + 1).padStart(2, '0') + '-' + String(ws.getDate()).padStart(2, '0');
+}
+
+function applyDailyReset(){
+  if (!Array.isArray(state.archive)) state.archive = [];
+  const entryDate = state.lastActivityDate
+    ? new Date(state.lastActivityDate + 'T12:00:00')
+    : new Date();
+  const entryDayKey = dayKeyOf(entryDate.toISOString());
+  const newDailyData = {
+    date: entryDate.toISOString(),
+    students: state.students.map(s => ({
+      id: s.id,
+      cats: { ...s.cats },
+      purchases: s.purchases || 0,
+      minusTotal: s.minusTotal || 0,
+      metivtaSum: (s.metivta ? (s.metivta.attendance || 0) + (s.metivta.behavior || 0) : 0),
+      metivtaAttendance: (s.metivta ? (s.metivta.attendance || 0) : 0),
+      metivtaBehavior: (s.metivta ? (s.metivta.behavior || 0) : 0)
+    })),
+    metivtaExtraStudents: (state.metivtaExtra || []).map(s => ({
+      id: s.id,
+      metivtaSum: (s.metivta ? (s.metivta.attendance || 0) + (s.metivta.behavior || 0) : 0),
+      metivtaAttendance: (s.metivta ? (s.metivta.attendance || 0) : 0),
+      metivtaBehavior: (s.metivta ? (s.metivta.behavior || 0) : 0)
+    }))
+  };
+  const existingDailyIdx = state.archive.findIndex(e => e.type !== 'weekly' && dayKeyOf(e.date) === entryDayKey);
+  if (existingDailyIdx !== -1){
+    state.archive.splice(existingDailyIdx, 1);
+  }
+  state.archive.unshift(newDailyData);
+
+  const weekKey = getWeekKey(entryDate);
+  let weeklyEntry;
+  const weeklyIdx = state.archive.findIndex(e => e.type === 'weekly' && e.weekKey === weekKey);
+  if (weeklyIdx !== -1){
+    weeklyEntry = state.archive[weeklyIdx];
+    state.archive.splice(weeklyIdx, 1);
+  } else {
+    weeklyEntry = {
+      type: 'weekly',
+      title: 'הנוסע המתמיד',
+      weekKey: weekKey,
+      weekStart: getWeekStart(entryDate).toISOString(),
+      date: entryDate.toISOString(),
+      students: state.students.map(s => ({
+        id: s.id,
+        morning: 0,
+        tefila: 0,
+        mikve: 0,
+        minusDelta: 0,
+        bonus: 0,
+        days: {},
+        baselineMikvaot: s.frequentFrozen ? (s.frequentFrozen.mikvaot || 0) : 0,
+        baselineRambam: s.frequentFrozen ? (s.frequentFrozen.rambam || 0) : 0,
+        baselineMetivta: s.metivtaFrozen ? (s.metivtaFrozen.attendance || 0) + (s.metivtaFrozen.behavior || 0) : 0
+      }))
+    };
+  }
+
+  weeklyEntry.date = entryDate.toISOString();
+  weeklyEntry.students.forEach(ws => {
+    const s = state.students.find(x => x.id === ws.id);
+    if (!s) return;
+    if (!ws.days) ws.days = {};
+    if (typeof ws.baselineMikvaot !== 'number') ws.baselineMikvaot = 0;
+    if (typeof ws.baselineRambam !== 'number') ws.baselineRambam = 0;
+    if (typeof ws.baselineMetivta !== 'number') ws.baselineMetivta = 0;
+
+    const dayMorning = Math.round((s.cats.c1 || 0) * (2 / 3));
+    const dayTefila = (s.cats.c7 || 0) + (s.cats.c3 || 0);
+    const dayBonus = (s.minusTotal || 0) === 0 ? 1 : 0;
+
+    const priorMikvaotSum = Object.values(ws.days).reduce((sum, d) => sum + (d.mikvaotVal || 0), 0);
+    const priorRambamSum = Object.values(ws.days).reduce((sum, d) => sum + (d.rambamVal || 0), 0);
+    const priorMetivtaSum = Object.values(ws.days).reduce((sum, d) => sum + (d.metivtaVal || 0), 0);
+
+    const currentMikvaot = s.frequentFrozen ? (s.frequentFrozen.mikvaot || 0) : 0;
+    const currentRambam = s.frequentFrozen ? (s.frequentFrozen.rambam || 0) : 0;
+    const currentMetivta = s.metivtaFrozen ? (s.metivtaFrozen.attendance || 0) + (s.metivtaFrozen.behavior || 0) : 0;
+
+    const dayMikvaotVal = currentMikvaot - ws.baselineMikvaot - priorMikvaotSum;
+    const dayRambamVal = currentRambam - ws.baselineRambam - priorRambamSum;
+    const dayMetivtaVal = currentMetivta - ws.baselineMetivta - priorMetivtaSum;
+
+    ws.days[entryDayKey] = {
+      morning: dayMorning,
+      tefila: dayTefila,
+      mikvaotVal: dayMikvaotVal,
+      bonus: dayBonus,
+      rambamVal: dayRambamVal,
+      metivtaVal: dayMetivtaVal
+    };
+
+    ws.morning += dayMorning;
+    ws.tefila += dayTefila;
+    ws.mikve += (s.cats.c6 || 0) * 2;
+    ws.minusDelta += s.minusTotal || 0;
+    ws.bonus = (ws.bonus || 0) + dayBonus;
+    ws.mikvaotVal = currentMikvaot - ws.baselineMikvaot;
+    ws.rambamVal = currentRambam - ws.baselineRambam;
+    ws.metivtaVal = currentMetivta - ws.baselineMetivta;
+  });
+  state.archive.unshift(weeklyEntry);
+
+  const dailyEntries = state.archive.filter(e => e.type !== 'weekly');
+  const weeklyEntries = state.archive.filter(e => e.type === 'weekly');
+  const MAX_DAILY = 90;
+  const MAX_WEEKLY = 26;
+  if (dailyEntries.length > MAX_DAILY || weeklyEntries.length > MAX_WEEKLY){
+    const keptDaily = dailyEntries.slice(0, MAX_DAILY);
+    const keptWeekly = weeklyEntries.slice(0, MAX_WEEKLY);
+    state.archive = state.archive.filter(e => keptDaily.includes(e) || keptWeekly.includes(e));
+  }
+
+  state.students.forEach(s => {
+    const daily = CATEGORIES.reduce((sum, c) => sum + (s.cats[c.key] || 0), 0);
+    s.cumulative += daily + (s.minusTotal || 0);
+    CATEGORIES.forEach(c => { s.cats[c.key] = 0; });
+    s.c5Total = 0;
+    s.purchases = 0;
+    s.minusTotal = 0;
+    s.frequent = { mikvaot: 0, rambam: 0 };
+    s.metivta = { attendance: 0, behavior: 0 };
+  });
+  (state.metivtaExtra || []).forEach(s => {
+    s.metivta = { attendance: 0, behavior: 0 };
+  });
+  state.lastAutoResetDate = todayStr();
+  state.lastActivityDate = null;
+}
+
+async function doResetGuarded(){
+  if (!state.lastActivityDate) return;
+  try{
+    await runTransaction(firestoreDb, async (tx) => {
+      const snap = await tx.get(stateDocRef);
+      if (snap.exists()){
+        const fresh = JSON.parse(JSON.stringify(snap.data()));
+        if (fresh && Array.isArray(fresh.students) && fresh.students.length === TOTAL_STUDENTS){
+          state = fresh;
+        }
+      }
+      if (!state.lastActivityDate){
+        // someone else already archived and reset this transition
+        return;
+      }
+      applyDailyReset();
+      tx.set(stateDocRef, state);
+      lastSyncedStateJson = JSON.stringify(state);
+    });
+  } catch(e){
+    // transaction failed (offline, etc.) - render whatever is in memory so the UI isn't stuck
+  }
+  render();
+  renderFrequentFlyerView();
+  renderMetivtaView();
+}
+
+function checkAutoReset(){
+  if (!state) return;
+  if (!state.lastActivityDate) return;
+  const today = todayStr();
+  if (state.lastActivityDate === today){
+    if (new Date().getHours() >= 18 && state.lastAutoResetDate !== today){
+      doResetGuarded();
+    }
+  } else {
+    if (state.lastAutoResetDate !== state.lastActivityDate){
+      doResetGuarded();
+    }
+  }
+}
+
+function isColHidden(cat){
+  return false;
+}
+
+let expandedGroup = null;
+let expandedGroupTimer = null;
+
+function activateExpandedGroup(groupName){
+  expandedGroup = groupName;
+  render();
+  armExpandedGroupTimer();
+}
+
+function armExpandedGroupTimer(){
+  clearTimeout(expandedGroupTimer);
+  expandedGroupTimer = setTimeout(() => {
+    expandedGroup = null;
+    render();
+  }, 10000);
+}
+
+function buildNameDropdown(){
+  const list = document.createElement('div');
+  list.className = 'merged-dropdown-list merged-dropdown-list-right';
+  [['כיתה', showMain], ['נוסע מתמיד', showFrequentFlyer], ['מתיבתא', showMetivta]].forEach(([label, action]) => {
+    const opt = document.createElement('div');
+    opt.className = 'merged-dropdown-option' + (label === 'שבועי' ? ' merged-dropdown-option-all' : '');
+    opt.textContent = label;
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      list.classList.remove('open');
+      action();
+    });
+    list.appendChild(opt);
+  });
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'merged-dropdown-toggle';
+  toggle.textContent = 'שם';
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.merged-dropdown-list.open').forEach(l => {
+      if (l !== list) l.classList.remove('open');
+    });
+    list.classList.toggle('open');
+  });
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'merged-dropdown';
+  dropdown.appendChild(toggle);
+  dropdown.appendChild(list);
+  return dropdown;
+}
+
+function buildColSpec(){
+  const spec = [];
+  spec.push({ kind: 'name', category: 'none', weight: 30 });
+
+  if (expandedGroup === 'prayer'){
+    MERGE_GROUPS[1].forEach(key => spec.push({ kind: 'individual', category: 'prayer', weight: 11, key }));
+    return spec;
+  }
+  if (expandedGroup === 'attendance'){
+    MERGE_GROUPS[0].forEach(key => spec.push({ kind: 'individual', category: 'attendance', weight: 11, key }));
+    return spec;
+  }
+  if (expandedGroup === 'minusShop'){
+    spec.push({ kind: 'minusOnly', category: 'score', weight: 11 });
+    spec.push({ kind: 'shopOnly', category: 'shop', weight: 11 });
+    return spec;
+  }
+
+  spec.push({ kind: 'total', category: 'none', weight: 16 });
+  spec.push({ kind: 'merged', category: 'prayer', weight: 11, group: MERGE_GROUPS[1], groupIndex: 1 });
+  spec.push({ kind: 'merged', category: 'attendance', weight: 11, group: MERGE_GROUPS[0], groupIndex: 0 });
+  spec.push({ kind: 'minus', category: 'score', weight: 11 });
+  return spec;
+}
+
+function buildBoard(title, students){
+  const wrap = document.createElement('div');
+  wrap.className = 'board-wrap';
+
+  const table = document.createElement('table');
+  const colSpec = buildColSpec();
+
+  const PX_BY_KIND = { name: 70, total: 45, plus: 40, minus: 40, merged: 45, individual: 45, shop: 40 };
+  const colgroup = document.createElement('colgroup');
+  let totalPx = 0;
+  colSpec.forEach(s => {
+    const col = document.createElement('col');
+    if (isColHidden(s.category)){
+      col.style.width = '0px';
+    } else {
+      const px = PX_BY_KIND[s.kind] || 70;
+      col.style.width = px + 'px';
+      totalPx += px;
+    }
+    if (s.kind === 'total') col.className = 'col-hide-narrow';
+    colgroup.appendChild(col);
+  });
+  table.appendChild(colgroup);
+  table.style.width = 'max(100%, ' + totalPx + 'px)';
+
+  const PLUS_KEY = 'c5';
+  const plusCategory = CATEGORIES.find(c => c.key === PLUS_KEY);
+
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+
+
+  colSpec.forEach(s => {
+    const th = document.createElement('th');
+    if (isColHidden(s.category)) th.style.display = 'none';
+
+    if (s.kind === 'name'){
+      th.appendChild(buildNameDropdown());
+    } else if (s.kind === 'total'){
+      th.className = (th.className ? th.className + ' ' : '') + 'col-hide-narrow';
+      const totalBtn = document.createElement('button');
+      totalBtn.className = 'col-reset-btn';
+      totalBtn.textContent = '=';
+      totalBtn.addEventListener('click', runRaffle);
+      th.appendChild(totalBtn);
+    } else if (s.kind === 'plus'){
+      const plusBtn = document.createElement('button');
+      plusBtn.className = 'col-reset-btn';
+      plusBtn.textContent = plusCategory.label;
+      plusBtn.addEventListener('click', () => resetColumn(plusCategory.key));
+      th.appendChild(plusBtn);
+    } else if (s.kind === 'minus'){
+      const list = document.createElement('div');
+      list.className = 'merged-dropdown-list';
+      [['minus', '-'], ['shop', '🛒']].forEach(([value, label]) => {
+        const opt = document.createElement('div');
+        opt.className = 'merged-dropdown-option';
+        opt.textContent = label;
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          list.classList.remove('open');
+          setMinusShopActive(value);
+        });
+        list.appendChild(opt);
+      });
+      const allOpt = document.createElement('div');
+      allOpt.className = 'merged-dropdown-option merged-dropdown-option-all';
+      allOpt.textContent = 'הכל';
+      allOpt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        list.classList.remove('open');
+        activateExpandedGroup('minusShop');
+      });
+      list.appendChild(allOpt);
+
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'merged-dropdown-toggle';
+      toggle.textContent = (state.minusShopActive === 'shop' ? '🛒' : '-');
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.merged-dropdown-list.open').forEach(l => {
+          if (l !== list) l.classList.remove('open');
+        });
+        list.classList.toggle('open');
+      });
+
+      const dropdown = document.createElement('div');
+      dropdown.className = 'merged-dropdown';
+      dropdown.appendChild(toggle);
+      dropdown.appendChild(list);
+      th.appendChild(dropdown);
+    } else if (s.kind === 'merged'){
+      th.className = (th.className ? th.className + ' ' : '') + 'col-hide-narrow';
+
+      const list = document.createElement('div');
+      list.className = 'merged-dropdown-list';
+      s.group.forEach(key => {
+        const cat = CATEGORIES.find(c => c.key === key);
+        const opt = document.createElement('div');
+        opt.className = 'merged-dropdown-option';
+        opt.textContent = cat.label;
+        opt.addEventListener('click', (e) => {
+          e.stopPropagation();
+          list.classList.remove('open');
+          if (key === 'c5' && state.mergedActive[s.groupIndex] === 'c5'){
+            resetColumn('c5');
+          } else {
+            setMergedActive(s.groupIndex, key);
+          }
+        });
+        list.appendChild(opt);
+      });
+      const allOpt = document.createElement('div');
+      allOpt.className = 'merged-dropdown-option merged-dropdown-option-all';
+      allOpt.textContent = 'הכל';
+      allOpt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        list.classList.remove('open');
+        activateExpandedGroup(s.category);
+      });
+      list.appendChild(allOpt);
+
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.className = 'merged-dropdown-toggle';
+      const activeCat = CATEGORIES.find(c => c.key === state.mergedActive[s.groupIndex]);
+      toggle.textContent = (activeCat ? activeCat.label : '');
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.merged-dropdown-list.open').forEach(l => {
+          if (l !== list) l.classList.remove('open');
+        });
+        list.classList.toggle('open');
+      });
+
+      const dropdown = document.createElement('div');
+      dropdown.className = 'merged-dropdown';
+      dropdown.appendChild(toggle);
+      dropdown.appendChild(list);
+      th.appendChild(dropdown);
+    } else if (s.kind === 'individual'){
+      const cat = CATEGORIES.find(c => c.key === s.key);
+      th.textContent = cat.label;
+    } else if (s.kind === 'minusOnly'){
+      th.textContent = '-';
+    } else if (s.kind === 'shopOnly'){
+      th.textContent = '🛒';
+    }
+
+    const thInner = document.createElement('div');
+    thInner.className = 'th-inner';
+    while (th.firstChild) thInner.appendChild(th.firstChild);
+    th.appendChild(thInner);
+
+    trh.appendChild(th);
+  });
+
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  students.forEach(student => {
+    const tr = document.createElement('tr');
+    tr.dataset.studentId = student.id;
+
+    colSpec.forEach(s => {
+      const td = document.createElement('td');
+      if (isColHidden(s.category)) td.style.display = 'none';
+
+      if (s.kind === 'name'){
+        td.className = (td.className ? td.className + ' ' : '') + 'num-cell';
+        const numSpan = document.createElement('span');
+        numSpan.className = 'cell-text';
+        numSpan.textContent = studentName(student.id);
+        td.appendChild(numSpan);
+      } else if (s.kind === 'total'){
+        td.className = (td.className ? td.className + ' ' : '') + 'total-cell col-hide-narrow';
+        const totalSpan = document.createElement('span');
+        totalSpan.className = 'cell-text';
+        totalSpan.textContent = studentTotal(student);
+        td.appendChild(totalSpan);
+      } else if (s.kind === 'plus'){
+        const c = plusCategory;
+        const roundActive = !!student.cats[c.key];
+        const displayVal = c.cumulativeKey
+          ? (student[c.cumulativeKey] || 0) + (student.cats[c.key] || 0)
+          : student.cats[c.key];
+        td.className = (td.className ? td.className + ' ' : '') + 'point-cell' + (roundActive ? ' active' : '');
+        const val = document.createElement('span');
+        val.className = 'point-val';
+        val.textContent = displayVal ? displayVal : '';
+        td.appendChild(val);
+        td.addEventListener('click', () => toggleCell(student.id, c.key));
+      } else if (s.kind === 'minus'){
+        if (state.minusShopActive === 'shop'){
+          const purchaseCost = (student.purchases || 0) * PURCHASE_COST;
+          const hasValue = purchaseCost !== 0;
+          td.className = (td.className ? td.className + ' ' : '') + 'point-cell purchase-cell' + (hasValue ? ' has-purchases' : '');
+          const val = document.createElement('span');
+          val.className = 'point-val';
+          val.textContent = hasValue ? -purchaseCost : '';
+          td.appendChild(val);
+          td.addEventListener('click', () => makePurchase(student.id));
+        } else {
+          const hasMinus = (student.minusTotal || 0) !== 0;
+          td.className = (td.className ? td.className + ' ' : '') + 'point-cell minus-cell' + (hasMinus ? ' has-minus' : '');
+          const minusVal = document.createElement('span');
+          minusVal.className = 'point-val';
+          minusVal.textContent = hasMinus ? student.minusTotal : '';
+          td.appendChild(minusVal);
+          td.addEventListener('click', () => showMinusPicker(student.id));
+        }
+      } else if (s.kind === 'merged'){
+        const activeKey = state.mergedActive[s.groupIndex];
+        let sum = s.group.reduce((sum2, k) => sum2 + (student.cats[k] || 0), 0);
+        if (s.group.includes('c5')) sum += (student.c5Total || 0);
+        const activeHasPoints = (student.cats[activeKey] || 0) > 0;
+        td.className = (td.className ? td.className + ' ' : '') + 'point-cell col-hide-narrow' + (activeHasPoints ? ' active' : '');
+        const val = document.createElement('span');
+        val.className = 'point-val';
+        val.textContent = sum > 0 ? sum : '';
+        td.appendChild(val);
+        td.addEventListener('click', () => toggleCell(student.id, activeKey));
+      } else if (s.kind === 'individual'){
+        const roundActive = !!student.cats[s.key];
+        td.className = (td.className ? td.className + ' ' : '') + 'point-cell' + (roundActive ? ' active' : '');
+        const val = document.createElement('span');
+        val.className = 'point-val';
+        val.textContent = student.cats[s.key] ? student.cats[s.key] : '';
+        td.appendChild(val);
+        td.addEventListener('click', () => toggleCell(student.id, s.key));
+      } else if (s.kind === 'minusOnly'){
+        const hasMinus = (student.minusTotal || 0) !== 0;
+        td.className = (td.className ? td.className + ' ' : '') + 'point-cell minus-cell' + (hasMinus ? ' has-minus' : '');
+        const minusVal = document.createElement('span');
+        minusVal.className = 'point-val';
+        minusVal.textContent = hasMinus ? student.minusTotal : '';
+        td.appendChild(minusVal);
+        td.addEventListener('click', () => showMinusPicker(student.id));
+      } else if (s.kind === 'shopOnly'){
+        const purchaseCost = (student.purchases || 0) * PURCHASE_COST;
+        const hasValue = purchaseCost !== 0;
+        td.className = (td.className ? td.className + ' ' : '') + 'point-cell purchase-cell' + (hasValue ? ' has-purchases' : '');
+        const val = document.createElement('span');
+        val.className = 'point-val';
+        val.textContent = hasValue ? -purchaseCost : '';
+        td.appendChild(val);
+        td.addEventListener('click', () => makePurchase(student.id));
+      }
+
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'table-scroll';
+  scrollWrap.appendChild(table);
+  wrap.appendChild(scrollWrap);
+  return wrap;
+}
+
+function showMain(){
+  document.getElementById('frequentFlyerView').style.display = 'none';
+  document.getElementById('metivtaView').style.display = 'none';
+  document.getElementById('boards').style.display = 'flex';
+  document.getElementById('todaySummary').style.display = 'block';
+  fitAllTextCells();
+}
+
+function showFrequentFlyer(){
+  document.getElementById('boards').style.display = 'none';
+  document.getElementById('todaySummary').style.display = 'none';
+  document.getElementById('metivtaView').style.display = 'none';
+  const el = document.getElementById('frequentFlyerView');
+  el.style.display = 'block';
+  renderFrequentFlyerView();
+}
+
+function showMetivta(){
+  document.getElementById('boards').style.display = 'none';
+  document.getElementById('todaySummary').style.display = 'none';
+  document.getElementById('frequentFlyerView').style.display = 'none';
+  const el = document.getElementById('metivtaView');
+  el.style.display = 'block';
+  renderMetivtaView();
+}
+
+function toggleFrequent(studentId, key){
+  requireEditAccess(() => {
+    const student = state.students.find(s => s.id === studentId);
+    if (!student) return;
+    if (!student.frequent) student.frequent = { mikvaot: 0, rambam: 0 };
+    if (!student.frequentFrozen) student.frequentFrozen = { mikvaot: 0, rambam: 0 };
+    const turningOn = !student.frequent[key];
+    student.frequent[key] = turningOn ? 2 : 0;
+    student.frequentFrozen[key] = (student.frequentFrozen[key] || 0) + (turningOn ? 2 : -2);
+    markActivity();
+    renderFrequentFlyerView();
+    saveState();
+  });
+}
+
+function buildFrequentBoard(students){
+  const wrap = document.createElement('div');
+  wrap.className = 'board-wrap';
+
+  const table = document.createElement('table');
+  table.style.width = 'max(100%, 260px)';
+
+  const colgroup = document.createElement('colgroup');
+  [['col', '50%'], ['col', '25%'], ['col', '25%']].forEach(([, w]) => {
+    const col = document.createElement('col');
+    col.style.width = w;
+    colgroup.appendChild(col);
+  });
+  table.appendChild(colgroup);
+
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  ['שם', 'מקוואות', 'רמב"ם'].forEach(label => {
+    const th = document.createElement('th');
+    const inner = document.createElement('div');
+    inner.className = 'th-inner';
+    if (label === 'שם'){
+      inner.appendChild(buildNameDropdown());
+    } else {
+      inner.textContent = label;
+    }
+    th.appendChild(inner);
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  students.forEach(student => {
+    const tr = document.createElement('tr');
+    tr.dataset.studentId = student.id;
+    if (!student.frequent) student.frequent = { mikvaot: 0, rambam: 0 };
+
+    const numTd = document.createElement('td');
+    numTd.className = 'num-cell';
+    const numSpan = document.createElement('span');
+    numSpan.className = 'cell-text';
+    numSpan.textContent = studentName(student.id);
+    numTd.appendChild(numSpan);
+    tr.appendChild(numTd);
+
+    [['mikvaot'], ['rambam']].forEach(([key]) => {
+      const td = document.createElement('td');
+      const active = !!student.frequent[key];
+      td.className = 'point-cell' + (active ? ' active' : '');
+      const val = document.createElement('span');
+      val.className = 'point-val';
+      val.textContent = active ? 2 : '';
+      td.appendChild(val);
+      td.addEventListener('click', () => toggleFrequent(student.id, key));
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'table-scroll';
+  scrollWrap.appendChild(table);
+  wrap.appendChild(scrollWrap);
+  return wrap;
+}
+
+function renderFrequentFlyerView(){
+  const el = document.getElementById('frequentFlyerView');
+  el.innerHTML = '';
+
+  const boardsWrap = document.createElement('div');
+  boardsWrap.className = 'boards';
+  boardsWrap.style.padding = '0';
+
+  const half = Math.ceil(TOTAL_STUDENTS / 2);
+  const firstHalf = state.students.slice(0, half);
+  const secondHalf = state.students.slice(half);
+
+  boardsWrap.appendChild((() => { const c = document.createElement('div'); c.className = 'board-col'; c.appendChild(buildFrequentBoard(firstHalf)); return c; })());
+  boardsWrap.appendChild((() => { const c = document.createElement('div'); c.className = 'board-col'; c.appendChild(buildFrequentBoard(secondHalf)); return c; })());
+
+  el.appendChild(boardsWrap);
+
+  const weeklyEntries = getDisplayArchive().filter(e => e.type === 'weekly');
+  const weeklyScrollWrap = document.createElement('div');
+  weeklyScrollWrap.className = 'weekly-tables-scroll';
+  weeklyEntries.forEach(entry => renderWeeklyEntryInto(entry, weeklyScrollWrap));
+  el.appendChild(weeklyScrollWrap);
+
+  fitAllTextCells();
+}
+
+function showMetivtaAttendancePicker(studentId){
+  requireEditAccess(() => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+
+    const msg = document.createElement('div');
+    msg.className = 'modal-msg';
+    msg.textContent = 'בחר כמות נקודות:';
+    box.appendChild(msg);
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'modal-btns';
+
+    [2, 4].forEach(amount => {
+      const btn = document.createElement('button');
+      btn.className = 'modal-btn modal-btn-confirm';
+      btn.textContent = String(amount);
+      btn.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        const student = state.students.find(s => s.id === studentId);
+        if (!student) return;
+        if (!student.metivta) student.metivta = { attendance: 0, behavior: 0 };
+        if (!student.metivtaFrozen) student.metivtaFrozen = { attendance: 0, behavior: 0 };
+        const oldVal = student.metivta.attendance || 0;
+        student.metivta.attendance = amount;
+        student.metivtaFrozen.attendance = (student.metivtaFrozen.attendance || 0) + (amount - oldVal);
+        markActivity();
+        renderMetivtaView();
+        saveState();
+      });
+      btnRow.appendChild(btn);
+    });
+
+    box.appendChild(btnRow);
+
+    const btnRow2 = document.createElement('div');
+    btnRow2.className = 'modal-btns';
+    btnRow2.style.marginTop = '10px';
+
+    [-2, -4].forEach(amount => {
+      const btn = document.createElement('button');
+      btn.className = 'modal-btn modal-btn-confirm';
+      btn.textContent = String(amount);
+      btn.addEventListener('click', () => {
+        const student = state.students.find(s => s.id === studentId);
+        if (!student) return;
+        if (!student.metivta) student.metivta = { attendance: 0, behavior: 0 };
+        const current = student.metivta.attendance || 0;
+        if (current + amount < 0){
+          showModal('אין מספיק נקודות בנוכחות כדי להוריד ' + Math.abs(amount) + '.', { showCancel: false, confirmText: 'הבנתי' });
+          return;
+        }
+        document.body.removeChild(overlay);
+        if (!student.metivtaFrozen) student.metivtaFrozen = { attendance: 0, behavior: 0 };
+        student.metivta.attendance = current + amount;
+        student.metivtaFrozen.attendance = (student.metivtaFrozen.attendance || 0) + amount;
+        markActivity();
+        renderMetivtaView();
+        saveState();
+      });
+      btnRow2.appendChild(btn);
+    });
+
+    box.appendChild(btnRow2);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'modal-btn modal-btn-cancel';
+    cancelBtn.textContent = 'ביטול';
+    cancelBtn.style.marginTop = '10px';
+    cancelBtn.addEventListener('click', () => document.body.removeChild(overlay));
+    box.appendChild(cancelBtn);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  });
+}
+
+function adjustMetivtaBehavior(studentId, delta){
+  const student = state.students.find(s => s.id === studentId);
+  if (!student) return;
+  if (!student.metivta) student.metivta = { attendance: 0, behavior: 0 };
+  if (!student.metivtaFrozen) student.metivtaFrozen = { attendance: 0, behavior: 0 };
+  let newTotal = (student.metivta.behavior || 0) + delta;
+  if (newTotal > 0) newTotal = 0;
+  const actualDelta = newTotal - (student.metivta.behavior || 0);
+  student.metivta.behavior = newTotal;
+  student.metivtaFrozen.behavior = (student.metivtaFrozen.behavior || 0) + actualDelta;
+  markActivity();
+  renderMetivtaView();
+  saveState();
+}
+
+function showMetivtaBehaviorPicker(studentId){
+  requireEditAccess(() => {
+    const student = state.students.find(s => s.id === studentId);
+    if (student && (student.metivta && student.metivta.behavior || 0) === 0){
+      adjustMetivtaBehavior(studentId, -1);
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+
+    const msg = document.createElement('div');
+    msg.className = 'modal-msg';
+    msg.textContent = 'בחר ערך להוספה:';
+    box.appendChild(msg);
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'modal-btns';
+
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'modal-btn modal-btn-confirm';
+    minusBtn.textContent = '−1';
+    minusBtn.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      adjustMetivtaBehavior(studentId, -1);
+    });
+    btnRow.appendChild(minusBtn);
+
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'modal-btn modal-btn-confirm';
+    plusBtn.textContent = '+1';
+    plusBtn.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      adjustMetivtaBehavior(studentId, 1);
+    });
+    btnRow.appendChild(plusBtn);
+
+    box.appendChild(btnRow);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'modal-btn modal-btn-cancel';
+    cancelBtn.textContent = 'ביטול';
+    cancelBtn.style.marginTop = '10px';
+    cancelBtn.addEventListener('click', () => document.body.removeChild(overlay));
+    box.appendChild(cancelBtn);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  });
+}
+
+function showMetivtaExtraAttendancePicker(studentId){
+  requireEditAccess(() => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+
+    const msg = document.createElement('div');
+    msg.className = 'modal-msg';
+    msg.textContent = 'בחר כמות נקודות:';
+    box.appendChild(msg);
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'modal-btns';
+
+    [2, 4].forEach(amount => {
+      const btn = document.createElement('button');
+      btn.className = 'modal-btn modal-btn-confirm';
+      btn.textContent = String(amount);
+      btn.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        const student = state.metivtaExtra.find(s => s.id === studentId);
+        if (!student) return;
+        if (!student.metivta) student.metivta = { attendance: 0, behavior: 0 };
+        if (!student.metivtaFrozen) student.metivtaFrozen = { attendance: 0, behavior: 0 };
+        const oldVal = student.metivta.attendance || 0;
+        student.metivta.attendance = amount;
+        student.metivtaFrozen.attendance = (student.metivtaFrozen.attendance || 0) + (amount - oldVal);
+        markActivity();
+        renderMetivtaView();
+        saveState();
+      });
+      btnRow.appendChild(btn);
+    });
+
+    box.appendChild(btnRow);
+
+    const btnRow2 = document.createElement('div');
+    btnRow2.className = 'modal-btns';
+    btnRow2.style.marginTop = '10px';
+
+    [-2, -4].forEach(amount => {
+      const btn = document.createElement('button');
+      btn.className = 'modal-btn modal-btn-confirm';
+      btn.textContent = String(amount);
+      btn.addEventListener('click', () => {
+        const student = state.metivtaExtra.find(s => s.id === studentId);
+        if (!student) return;
+        if (!student.metivta) student.metivta = { attendance: 0, behavior: 0 };
+        const current = student.metivta.attendance || 0;
+        if (current + amount < 0){
+          showModal('אין מספיק נקודות בנוכחות כדי להוריד ' + Math.abs(amount) + '.', { showCancel: false, confirmText: 'הבנתי' });
+          return;
+        }
+        document.body.removeChild(overlay);
+        if (!student.metivtaFrozen) student.metivtaFrozen = { attendance: 0, behavior: 0 };
+        student.metivta.attendance = current + amount;
+        student.metivtaFrozen.attendance = (student.metivtaFrozen.attendance || 0) + amount;
+        markActivity();
+        renderMetivtaView();
+        saveState();
+      });
+      btnRow2.appendChild(btn);
+    });
+
+    box.appendChild(btnRow2);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'modal-btn modal-btn-cancel';
+    cancelBtn.textContent = 'ביטול';
+    cancelBtn.style.marginTop = '10px';
+    cancelBtn.addEventListener('click', () => document.body.removeChild(overlay));
+    box.appendChild(cancelBtn);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  });
+}
+
+function adjustMetivtaExtraBehavior(studentId, delta){
+  const student = state.metivtaExtra.find(s => s.id === studentId);
+  if (!student) return;
+  if (!student.metivta) student.metivta = { attendance: 0, behavior: 0 };
+  if (!student.metivtaFrozen) student.metivtaFrozen = { attendance: 0, behavior: 0 };
+  let newTotal = (student.metivta.behavior || 0) + delta;
+  if (newTotal > 0) newTotal = 0;
+  const actualDelta = newTotal - (student.metivta.behavior || 0);
+  student.metivta.behavior = newTotal;
+  student.metivtaFrozen.behavior = (student.metivtaFrozen.behavior || 0) + actualDelta;
+  markActivity();
+  renderMetivtaView();
+  saveState();
+}
+
+function showMetivtaExtraBehaviorPicker(studentId){
+  requireEditAccess(() => {
+    const student = state.metivtaExtra.find(s => s.id === studentId);
+    if (student && (student.metivta && student.metivta.behavior || 0) === 0){
+      adjustMetivtaExtraBehavior(studentId, -1);
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+
+    const msg = document.createElement('div');
+    msg.className = 'modal-msg';
+    msg.textContent = 'בחר ערך להוספה:';
+    box.appendChild(msg);
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'modal-btns';
+
+    const minusBtn = document.createElement('button');
+    minusBtn.className = 'modal-btn modal-btn-confirm';
+    minusBtn.textContent = '−1';
+    minusBtn.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      adjustMetivtaExtraBehavior(studentId, -1);
+    });
+    btnRow.appendChild(minusBtn);
+
+    const plusBtn = document.createElement('button');
+    plusBtn.className = 'modal-btn modal-btn-confirm';
+    plusBtn.textContent = '+1';
+    plusBtn.addEventListener('click', () => {
+      document.body.removeChild(overlay);
+      adjustMetivtaExtraBehavior(studentId, 1);
+    });
+    btnRow.appendChild(plusBtn);
+
+    box.appendChild(btnRow);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'modal-btn modal-btn-cancel';
+    cancelBtn.textContent = 'ביטול';
+    cancelBtn.style.marginTop = '10px';
+    cancelBtn.addEventListener('click', () => document.body.removeChild(overlay));
+    box.appendChild(cancelBtn);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  });
+}
+
+function buildMetivtaBoard(students, isExtra){
+  const wrap = document.createElement('div');
+  wrap.className = 'board-wrap';
+
+  const table = document.createElement('table');
+  table.style.width = 'max(100%, 260px)';
+
+  const colgroup = document.createElement('colgroup');
+  ['50%', '25%', '25%'].forEach(w => {
+    const col = document.createElement('col');
+    col.style.width = w;
+    colgroup.appendChild(col);
+  });
+  table.appendChild(colgroup);
+
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  ['שם', 'נוכחות', 'התנהגות'].forEach(label => {
+    const th = document.createElement('th');
+    const inner = document.createElement('div');
+    inner.className = 'th-inner';
+    if (label === 'שם'){
+      inner.appendChild(buildNameDropdown());
+    } else {
+      inner.textContent = label;
+    }
+    th.appendChild(inner);
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  students.forEach(student => {
+    const tr = document.createElement('tr');
+    tr.dataset.studentId = student.id;
+    if (!student.metivta) student.metivta = { attendance: 0, behavior: 0 };
+
+    const numTd = document.createElement('td');
+    numTd.className = 'num-cell';
+    const numSpan = document.createElement('span');
+    numSpan.className = 'cell-text';
+    numSpan.textContent = isExtra ? metivtaExtraName(student.id) : studentName(student.id);
+    numTd.appendChild(numSpan);
+    tr.appendChild(numTd);
+
+    const attTd = document.createElement('td');
+    const attVal = student.metivta.attendance || 0;
+    attTd.className = 'point-cell' + (attVal !== 0 ? ' active' : '');
+    const attSpan = document.createElement('span');
+    attSpan.className = 'point-val';
+    attSpan.textContent = attVal !== 0 ? attVal : '';
+    attTd.appendChild(attSpan);
+    attTd.addEventListener('click', () => (isExtra ? showMetivtaExtraAttendancePicker(student.id) : showMetivtaAttendancePicker(student.id)));
+    tr.appendChild(attTd);
+
+    const behTd = document.createElement('td');
+    const behVal = student.metivta.behavior || 0;
+    behTd.className = 'point-cell minus-cell' + (behVal !== 0 ? ' has-minus' : '');
+    const behSpan = document.createElement('span');
+    behSpan.className = 'point-val';
+    behSpan.textContent = behVal !== 0 ? behVal : '';
+    behTd.appendChild(behSpan);
+    behTd.addEventListener('click', () => (isExtra ? showMetivtaExtraBehaviorPicker(student.id) : showMetivtaBehaviorPicker(student.id)));
+    tr.appendChild(behTd);
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'table-scroll';
+  scrollWrap.appendChild(table);
+  wrap.appendChild(scrollWrap);
+  return wrap;
+}
+
+function wrapMetivtaBoardCol(boardEl){
+  const col = document.createElement('div');
+  col.className = 'metivta-board-col';
+  col.appendChild(boardEl);
+  return col;
+}
+
+function renderMetivtaView(){
+  const el = document.getElementById('metivtaView');
+  el.innerHTML = '';
+
+  const boardsWrap = document.createElement('div');
+  boardsWrap.className = 'boards';
+  boardsWrap.style.padding = '0';
+
+  const half = Math.ceil(TOTAL_STUDENTS / 2);
+  const firstHalf = state.students.slice(0, half);
+  const secondHalf = state.students.slice(half);
+
+  boardsWrap.appendChild(wrapMetivtaBoardCol(buildMetivtaBoard(firstHalf, false)));
+  boardsWrap.appendChild(wrapMetivtaBoardCol(buildMetivtaBoard(secondHalf, false)));
+
+  if (!Array.isArray(state.metivtaExtra)) state.metivtaExtra = [];
+
+  const extraHalf = Math.ceil(state.metivtaExtra.length / 2);
+  const extraFirstHalf = state.metivtaExtra.slice(0, extraHalf);
+  const extraSecondHalf = state.metivtaExtra.slice(extraHalf);
+
+  boardsWrap.appendChild(wrapMetivtaBoardCol(buildMetivtaBoard(extraFirstHalf, true)));
+  boardsWrap.appendChild(wrapMetivtaBoardCol(buildMetivtaBoard(extraSecondHalf, true)));
+
+  el.appendChild(boardsWrap);
+
+  const metivtaHistoryEl = document.createElement('div');
+  el.appendChild(metivtaHistoryEl);
+  renderMetivtaHistoryTable(metivtaHistoryEl);
+
+  fitAllTextCells();
+}
+
+async function exportMetivtaArchiveCSV(days){
+  try {
+    const headers = ['שם'];
+    days.forEach(entry => {
+      const d = new Date(entry.date);
+      const dl = formatHebrewDateShort(d);
+      headers.push(dl + ' · נוכחות', dl + ' · התנהגות');
+    });
+    const rows = [headers];
+    state.students.forEach(student => {
+      const row = [studentName(student.id)];
+      days.forEach(entry => {
+        const s = entry.students.find(x => x.id === student.id) || {};
+        row.push(s.metivtaAttendance || 0, s.metivtaBehavior || 0);
+      });
+      rows.push(row);
+    });
+    (state.metivtaExtra || []).forEach(student => {
+      const row = [metivtaExtraName(student.id)];
+      days.forEach(entry => {
+        const s = (entry.metivtaExtraStudents || []).find(x => x.id === student.id) || {};
+        row.push(s.metivtaAttendance || 0, s.metivtaBehavior || 0);
+      });
+      rows.push(row);
+    });
+    const csv = rows.map(row => row.map(cell => {
+      const str = String(cell);
+      return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+    }).join(',')).join('\r\n');
+
+    const filename = 'מתיבתא-ארכיון_' + todayStr() + '.csv';
+    await saveCsvFile(filename, csv);
+  } catch (err){
+    showModal('שגיאה בהורדה: ' + (err && err.message ? err.message : String(err)), { showCancel: false, confirmText: 'הבנתי' });
+  }
+}
+
+let metivtaArchiveSortIndex = null;
+
+let metivtaArchiveField = 'attendance';
+
+function buildMetivtaFieldDropdown(container){
+  const list = document.createElement('div');
+  list.className = 'merged-dropdown-list merged-dropdown-list-right';
+  [['sum', '='], ['attendance', 'נוכחות'], ['behavior', 'התנהגות']].forEach(([value, label]) => {
+    const opt = document.createElement('div');
+    opt.className = 'merged-dropdown-option';
+    opt.textContent = label;
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      list.classList.remove('open');
+      metivtaArchiveField = value;
+      renderMetivtaHistoryTable(container);
+    });
+    list.appendChild(opt);
+  });
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'merged-dropdown-toggle';
+  toggle.textContent = metivtaArchiveField === 'behavior' ? 'התנהגות' : (metivtaArchiveField === 'sum' ? '=' : 'נוכחות');
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.merged-dropdown-list.open').forEach(l => {
+      if (l !== list) l.classList.remove('open');
+    });
+    list.classList.toggle('open');
+  });
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'merged-dropdown';
+  dropdown.appendChild(toggle);
+  dropdown.appendChild(list);
+  return dropdown;
+}
+
+function renderMetivtaHistoryTable(container){
+  container.innerHTML = '';
+
+  const days = getDisplayArchive().filter(e => e.type !== 'weekly' && !e.isLive);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'archive-entry';
+
+  const dateEl = document.createElement('div');
+  dateEl.className = 'archive-date weekly-header-row';
+  const titleSpan = document.createElement('span');
+  titleSpan.textContent = 'ארכיון';
+  dateEl.appendChild(titleSpan);
+
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'export-btn';
+  exportBtn.textContent = 'הורדת אקסל';
+  exportBtn.addEventListener('click', () => exportMetivtaArchiveCSV(days));
+  dateEl.appendChild(exportBtn);
+
+  wrap.appendChild(dateEl);
+
+  const table = document.createElement('table');
+  table.className = 'archive-table';
+  table.style.width = 'max(100%, ' + (210 + days.length * 40) + 'px)';
+
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  const nameTh = document.createElement('th');
+  nameTh.appendChild(buildMetivtaFieldDropdown(container));
+  trh.appendChild(nameTh);
+  const sevenTh = document.createElement('th');
+  sevenTh.textContent = '7';
+  trh.appendChild(sevenTh);
+  days.forEach((entry, dayIndex) => {
+    const th = document.createElement('th');
+    th.style.cursor = 'pointer';
+    const d = new Date(entry.date);
+    const dateSpan = document.createElement('div');
+    dateSpan.textContent = formatHebrewDateShort(d) + (metivtaArchiveSortIndex === dayIndex ? ' ▼' : '');
+    const weekdaySpan = document.createElement('div');
+    weekdaySpan.textContent = d.toLocaleDateString('he-IL', { weekday: 'short' });
+    weekdaySpan.style.fontWeight = '400';
+    weekdaySpan.style.fontSize = '0.75em';
+    weekdaySpan.style.color = 'var(--ink-soft)';
+    th.appendChild(dateSpan);
+    th.appendChild(weekdaySpan);
+    th.addEventListener('click', () => {
+      metivtaArchiveSortIndex = dayIndex;
+      renderMetivtaHistoryTable(container);
+    });
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+
+  const isSum = metivtaArchiveField === 'sum';
+  const fieldKey = metivtaArchiveField === 'behavior' ? 'metivtaBehavior' : 'metivtaAttendance';
+
+  const mainRows = state.students.map(student => ({
+    name: studentName(student.id),
+    getVal: (entry) => {
+      const s = entry.students.find(x => x.id === student.id);
+      if (!s) return 0;
+      return isSum ? ((s.metivtaAttendance || 0) + (s.metivtaBehavior || 0)) : (s[fieldKey] || 0);
+    },
+    onEdit: isSum ? null : (entry, newVal) => {
+      const s = entry.students.find(x => x.id === student.id);
+      if (s){ s[fieldKey] = newVal; saveState(); renderMetivtaHistoryTable(container); }
+    }
+  }));
+  const extraRows = (state.metivtaExtra || []).map(student => ({
+    name: metivtaExtraName(student.id),
+    getVal: (entry) => {
+      const s = (entry.metivtaExtraStudents || []).find(x => x.id === student.id);
+      if (!s) return 0;
+      return isSum ? ((s.metivtaAttendance || 0) + (s.metivtaBehavior || 0)) : (s[fieldKey] || 0);
+    },
+    onEdit: isSum ? null : (entry, newVal) => {
+      if (!Array.isArray(entry.metivtaExtraStudents)) entry.metivtaExtraStudents = [];
+      let s = entry.metivtaExtraStudents.find(x => x.id === student.id);
+      if (!s){ s = { id: student.id, metivtaSum: 0, metivtaAttendance: 0, metivtaBehavior: 0 }; entry.metivtaExtraStudents.push(s); }
+      s[fieldKey] = newVal;
+      saveState();
+      renderMetivtaHistoryTable(container);
+    }
+  }));
+
+  let allRows = mainRows.concat(extraRows);
+  if (metivtaArchiveSortIndex !== null && days[metivtaArchiveSortIndex]){
+    const sortEntry = days[metivtaArchiveSortIndex];
+    allRows = allRows.slice().sort((a, b) => b.getVal(sortEntry) - a.getVal(sortEntry));
+  }
+
+  allRows.forEach(row => {
+    const tr = document.createElement('tr');
+    const nameTd = document.createElement('td');
+    nameTd.textContent = row.name;
+    tr.appendChild(nameTd);
+
+    const last7 = days.slice(0, 7);
+    const sevenSum = last7.reduce((sum, entry) => sum + row.getVal(entry), 0);
+    const sevenTd = document.createElement('td');
+    sevenTd.textContent = sevenSum || '';
+    sevenTd.style.fontWeight = '700';
+    tr.appendChild(sevenTd);
+
+    days.forEach(entry => {
+      const val = row.getVal(entry);
+      const td = document.createElement('td');
+      td.textContent = val || '';
+      if (row.onEdit){
+        td.style.cursor = 'pointer';
+        td.addEventListener('click', () => {
+          promptEditArchiveValue(val, (newVal) => row.onEdit(entry, newVal));
+        });
+      }
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'table-scroll';
+  scrollWrap.appendChild(table);
+  wrap.appendChild(scrollWrap);
+  container.appendChild(wrap);
+}
+
+async function exportWeeklyCSV(entry, weekStartD, weekEndD){
+  try {
+    const headers = ['שם', 'חסידות', 'תפילה', 'מקוואות', 'בונוס', 'רמב"ם', 'מתיבתא'];
+    const rows = [headers];
+    const sumField = (s, field) => Object.values(s.days || {}).reduce((sum, d) => sum + (d[field] || 0), 0);
+    entry.students.forEach(s => {
+      rows.push([
+        studentName(s.id),
+        sumField(s, 'morning'),
+        sumField(s, 'tefila'),
+        sumField(s, 'mikvaotVal'),
+        sumField(s, 'bonus'),
+        sumField(s, 'rambamVal'),
+        sumField(s, 'metivtaVal')
+      ]);
+    });
+    const csv = rows.map(row => row.map(cell => {
+      const str = String(cell);
+      return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+    }).join(',')).join('\r\n');
+
+    const dateStr = weekStartD.toISOString().slice(0, 10) + '_' + weekEndD.toISOString().slice(0, 10);
+    const filename = 'הנוסע-המתמיד_' + dateStr + '.csv';
+    await saveCsvFile(filename, csv);
+  } catch (err){
+    showModal('שגיאה בהורדה: ' + (err && err.message ? err.message : String(err)), { showCancel: false, confirmText: 'הבנתי' });
+  }
+}
+
+function buildLiveTodayDailyEntry(){
+  return {
+    date: new Date().toISOString(),
+    isLive: true,
+    students: state.students.map(s => ({
+      id: s.id,
+      cats: { ...s.cats },
+      purchases: s.purchases || 0,
+      minusTotal: s.minusTotal || 0
+    }))
+  };
+}
+
+function getDisplayArchive(){
+  const weekKey = getWeekKey(new Date());
+  const historical = state.archive
+    .filter(e => e.type !== 'weekly' || e.weekKey !== weekKey)
+    .slice()
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const currentWeekly = state.archive.find(e => e.type === 'weekly' && e.weekKey === weekKey);
+  const weeklyList = currentWeekly ? [currentWeekly] : [];
+  return [buildLiveTodayDailyEntry(), ...weeklyList, ...historical];
+}
+
+let weeklyArchiveSortField = {};
+let weeklyArchiveViewMode = {};
+
+const HEBREW_WEEKDAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+
+function buildWeeklyViewDropdown(entry, weekStartD, container){
+  const list = document.createElement('div');
+  list.className = 'merged-dropdown-list merged-dropdown-list-right';
+
+  const currentMode = weeklyArchiveViewMode[entry.weekKey] || 'total';
+
+  const addOption = (value, label) => {
+    const opt = document.createElement('div');
+    opt.className = 'merged-dropdown-option';
+    opt.textContent = label;
+    opt.addEventListener('click', (e) => {
+      e.stopPropagation();
+      list.classList.remove('open');
+      weeklyArchiveViewMode[entry.weekKey] = value;
+      renderFrequentFlyerView();
+    });
+    list.appendChild(opt);
+  };
+
+  addOption('total', 'סה"כ השבוע');
+  for (let i = 0; i < 7; i++){
+    const d = new Date(weekStartD);
+    d.setDate(d.getDate() + i);
+    const dKey = dayKeyOf(d.toISOString());
+    addOption(dKey, HEBREW_WEEKDAY_NAMES[i] + ' · ' + formatHebrewDateShort(d));
+  }
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'merged-dropdown-toggle';
+  if (currentMode === 'total'){
+    toggle.textContent = 'ארכיון · ' + formatHebrewDateShort(weekStartD) + ' – ' + formatHebrewDateShort((() => { const e = new Date(weekStartD); e.setDate(e.getDate() + 6); return e; })());
+  } else {
+    const selectedDate = new Date(currentMode);
+    const dIdx = Math.round((selectedDate.getTime() - new Date(dayKeyOf(weekStartD.toISOString())).getTime()) / 86400000);
+    toggle.textContent = (HEBREW_WEEKDAY_NAMES[dIdx] ? HEBREW_WEEKDAY_NAMES[dIdx] + ' · ' + formatHebrewDateShort(selectedDate) : currentMode);
+  }
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.merged-dropdown-list.open').forEach(l => {
+      if (l !== list) l.classList.remove('open');
+    });
+    list.classList.toggle('open');
+  });
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'merged-dropdown';
+  dropdown.appendChild(toggle);
+  dropdown.appendChild(list);
+  return dropdown;
+}
+
+function renderWeeklyEntryInto(entry, container){
+  const entryWrap = document.createElement('div');
+  entryWrap.className = 'archive-entry';
+
+  const dateEl = document.createElement('div');
+  dateEl.className = 'archive-date weekly-header-row';
+  const weekStartD = new Date(entry.weekStart);
+  const weekEndD = new Date(weekStartD);
+  weekEndD.setDate(weekEndD.getDate() + 6);
+
+  dateEl.appendChild(buildWeeklyViewDropdown(entry, weekStartD, container));
+
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'export-btn';
+  exportBtn.textContent = 'הורדת אקסל';
+  exportBtn.addEventListener('click', () => exportWeeklyCSV(entry, weekStartD, weekEndD));
+  dateEl.appendChild(exportBtn);
+
+  entryWrap.appendChild(dateEl);
+
+  const table = document.createElement('table');
+  table.className = 'archive-table';
+
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  trh.appendChild(document.createElement('th')).textContent = 'שם';
+  const fieldDefs = [
+    { field: 'morning', label: 'חסידות' },
+    { field: 'tefila', label: 'תפילה' },
+    { field: 'mikvaotVal', label: 'מקוואות' },
+    { field: 'bonus', label: 'בונוס' },
+    { field: 'rambamVal', label: 'רמב"ם' },
+    { field: 'metivtaVal', label: 'מתיבתא' }
+  ];
+  const currentSortField = weeklyArchiveSortField[entry.weekKey] || null;
+  const viewMode = weeklyArchiveViewMode[entry.weekKey] || 'total';
+  const isDayView = viewMode !== 'total';
+
+  fieldDefs.forEach(({ field, label }) => {
+    const th = document.createElement('th');
+    th.style.cursor = 'pointer';
+    th.textContent = label + (currentSortField === field ? ' ▼' : '');
+    th.addEventListener('click', () => {
+      weeklyArchiveSortField[entry.weekKey] = field;
+      renderFrequentFlyerView();
+    });
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const seenIds = new Set();
+  let uniqueStudents = (entry.students || []).filter(s => {
+    if (seenIds.has(s.id)) return false;
+    seenIds.add(s.id);
+    return true;
+  });
+
+  const getFieldVal = (s, field) => {
+    if (!isDayView){
+      return Object.values(s.days || {}).reduce((sum, d) => sum + (d[field] || 0), 0);
+    }
+    const dayData = (s.days || {})[viewMode];
+    return dayData ? (dayData[field] || 0) : 0;
+  };
+
+  if (currentSortField){
+    uniqueStudents = uniqueStudents.slice().sort((a, b) => getFieldVal(b, currentSortField) - getFieldVal(a, currentSortField));
+  }
+  uniqueStudents.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.appendChild(document.createElement('td')).textContent = studentName(s.id);
+
+    fieldDefs.forEach(({ field }) => {
+      const td = document.createElement('td');
+      const val = getFieldVal(s, field);
+      td.textContent = val || '';
+      if (isDayView){
+        td.style.cursor = 'pointer';
+        td.addEventListener('click', () => {
+          promptEditArchiveValue(val, (newVal) => {
+            if (!s.days) s.days = {};
+            if (!s.days[viewMode]) s.days[viewMode] = {};
+            s.days[viewMode][field] = newVal;
+            saveState();
+            renderFrequentFlyerView();
+          });
+        });
+      }
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  entryWrap.appendChild(table);
+  container.appendChild(entryWrap);
+}
+
+let historyMergedActive = {};
+let todayHistoryContainerEl = null;
+
+function hebrewDayLetters(n){
+  const ones = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+  const tens = ['', 'י', 'כ', 'ל'];
+  if (n === 15) return 'טו';
+  if (n === 16) return 'טז';
+  const t = Math.floor(n / 10);
+  const o = n % 10;
+  return tens[t] + ones[o];
+}
+
+function formatHebrewDateShort(d, opts){
+  opts = opts || {};
+  const parts = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day: 'numeric', month: 'short' }).formatToParts(d);
+  let day = '';
+  let month = '';
+  parts.forEach(p => {
+    if (p.type === 'day') day = p.value;
+    if (p.type === 'month') month = p.value;
+  });
+  const dayNum = parseInt(day, 10);
+  const dayLetters = isNaN(dayNum) ? day : hebrewDayLetters(dayNum);
+  return dayLetters + ' ' + month;
+}
+
+function dayKeyOf(dateStr){
+  const d = new Date(dateStr);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function getHistoryActive(dayKey, groupType, defaultKey){
+  const k = dayKey + '_' + groupType;
+  if (!(k in historyMergedActive)) historyMergedActive[k] = defaultKey;
+  return historyMergedActive[k];
+}
+
+function setHistoryActive(dayKey, groupType, key){
+  historyMergedActive[dayKey + '_' + groupType] = key;
+  if (todayHistoryContainerEl) renderTodayHistoryTable(todayHistoryContainerEl);
+}
+
+function buildHistoryDropdown(dayKey, groupType, options){
+  const activeKey = getHistoryActive(dayKey, groupType, options[0].key);
+
+  const list = document.createElement('div');
+  list.className = 'merged-dropdown-list merged-dropdown-list-right';
+  options.forEach(opt => {
+    const optEl = document.createElement('div');
+    optEl.className = 'merged-dropdown-option';
+    optEl.textContent = opt.label;
+    optEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      list.classList.remove('open');
+      setHistoryActive(dayKey, groupType, opt.key);
+    });
+    list.appendChild(optEl);
+  });
+
+  const activeOpt = options.find(o => o.key === activeKey) || options[0];
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'merged-dropdown-toggle';
+  toggle.textContent = activeOpt.label;
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.merged-dropdown-list.open').forEach(l => {
+      if (l !== list) l.classList.remove('open');
+    });
+    list.classList.toggle('open');
+  });
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'merged-dropdown';
+  dropdown.appendChild(toggle);
+  dropdown.appendChild(list);
+  return dropdown;
+}
+
+async function exportArchiveDaysCSV(days, allOptions, groupType){
+  try {
+    const dayLabel = (entry) => {
+      const d = new Date(entry.date);
+      return formatHebrewDateShort(d) + (entry.isLive ? ' (היום)' : '');
+    };
+    const perDayLabels = [...CATEGORIES.map(c => c.label), '-', '🛒'];
+
+    const headers = ['שם'];
+    days.forEach(entry => {
+      const dl = dayLabel(entry);
+      perDayLabels.forEach(label => headers.push(dl + ' · ' + label));
+    });
+
+    const rows = [headers];
+    state.students.forEach(student => {
+      const row = [studentName(student.id)];
+      days.forEach(entry => {
+        const s = entry.students.find(x => x.id === student.id) || {};
+        const cats = s.cats || {};
+        CATEGORIES.forEach(c => row.push(cats[c.key] || 0));
+        row.push(s.minusTotal || 0);
+        row.push(-((s.purchases || 0) * PURCHASE_COST));
+      });
+      rows.push(row);
+    });
+    const csv = rows.map(row => row.map(cell => {
+      const str = String(cell);
+      return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+    }).join(',')).join('\r\n');
+
+    const filename = 'ארכיון_' + todayStr() + '.csv';
+    await saveCsvFile(filename, csv);
+  } catch (err){
+    showModal('שגיאה בהורדה: ' + (err && err.message ? err.message : String(err)), { showCancel: false, confirmText: 'הבנתי' });
+  }
+}
+
+let todayArchiveSortIndex = null;
+
+function getTodayArchiveValue(entry, studentId, activeKey){
+  const s = entry.students.find(x => x.id === studentId);
+  const cats = (s && s.cats) || {};
+  if (activeKey === 'shop') return -((s && s.purchases || 0) * PURCHASE_COST);
+  if (activeKey === 'minus') return (s && s.minusTotal) || 0;
+  return cats[activeKey] || 0;
+}
+
+function renderTodayHistoryTable(container){
+  todayHistoryContainerEl = container;
+  container.innerHTML = '';
+
+  const days = getDisplayArchive().filter(e => e.type !== 'weekly' && !e.isLive);
+
+  const allOptions = [
+    ...MERGE_GROUPS[1].map(k => ({ key: k, label: CATEGORIES.find(c => c.key === k).label })),
+    ...MERGE_GROUPS[0].map(k => ({ key: k, label: CATEGORIES.find(c => c.key === k).label })),
+    { key: 'minus', label: '-' },
+    { key: 'shop', label: '🛒' }
+  ];
+  const groupType = 'combined';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'archive-entry';
+
+  const dateEl = document.createElement('div');
+  dateEl.className = 'archive-date weekly-header-row';
+  const titleSpan = document.createElement('span');
+  titleSpan.textContent = 'ארכיון';
+  dateEl.appendChild(titleSpan);
+
+  const exportBtn = document.createElement('button');
+  exportBtn.className = 'export-btn';
+  exportBtn.textContent = 'הורדת אקסל';
+  exportBtn.addEventListener('click', () => exportArchiveDaysCSV(days, allOptions, groupType));
+  dateEl.appendChild(exportBtn);
+
+  wrap.appendChild(dateEl);
+
+  const table = document.createElement('table');
+  table.className = 'archive-table';
+  table.style.width = 'max(100%, ' + (160 + days.length * 40) + 'px)';
+
+  const thead = document.createElement('thead');
+
+  const trDate = document.createElement('tr');
+  const nameTh = document.createElement('th');
+  nameTh.appendChild(buildHistoryDropdown('archive_shared', groupType, allOptions));
+  trDate.appendChild(nameTh);
+  days.forEach((entry, dayIndex) => {
+    const th = document.createElement('th');
+    th.style.cursor = 'pointer';
+    const d = new Date(entry.date);
+    const dateLine = formatHebrewDateShort(d) + (entry.isLive ? ' (היום)' : '');
+    const weekdayLine = d.toLocaleDateString('he-IL', { weekday: 'short' });
+    th.innerHTML = '';
+    const dateSpan = document.createElement('div');
+    dateSpan.textContent = dateLine + (todayArchiveSortIndex === dayIndex ? ' ▼' : '');
+    const weekdaySpan = document.createElement('div');
+    weekdaySpan.textContent = weekdayLine;
+    weekdaySpan.style.fontWeight = '400';
+    weekdaySpan.style.fontSize = '0.75em';
+    weekdaySpan.style.color = 'var(--ink-soft)';
+    th.appendChild(dateSpan);
+    th.appendChild(weekdaySpan);
+    th.addEventListener('click', () => {
+      todayArchiveSortIndex = dayIndex;
+      renderTodayHistoryTable(container);
+    });
+    trDate.appendChild(th);
+  });
+  thead.appendChild(trDate);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const activeKeyForSort = getHistoryActive('archive_shared', groupType, allOptions[0].key);
+  let orderedStudents = state.students.slice();
+  if (todayArchiveSortIndex !== null && days[todayArchiveSortIndex]){
+    const sortEntry = days[todayArchiveSortIndex];
+    orderedStudents.sort((a, b) => getTodayArchiveValue(sortEntry, b.id, activeKeyForSort) - getTodayArchiveValue(sortEntry, a.id, activeKeyForSort));
+  }
+  orderedStudents.forEach(student => {
+    const tr = document.createElement('tr');
+    const nameTd = document.createElement('td');
+    nameTd.textContent = studentName(student.id);
+    tr.appendChild(nameTd);
+
+    days.forEach(entry => {
+      const s = entry.students.find(x => x.id === student.id);
+      const cats = (s && s.cats) || {};
+      const activeKey = getHistoryActive('archive_shared', groupType, allOptions[0].key);
+
+      let val;
+      if (activeKey === 'shop'){
+        val = -((s && s.purchases || 0) * PURCHASE_COST);
+      } else if (activeKey === 'minus'){
+        val = (s && s.minusTotal) || 0;
+      } else {
+        val = cats[activeKey] || 0;
+      }
+      const td = document.createElement('td');
+      td.textContent = val || '';
+      td.style.cursor = 'pointer';
+      td.addEventListener('click', () => {
+        if (!s) return;
+        if (activeKey === 'shop'){
+          promptEditArchiveValue(s.purchases || 0, (newVal) => {
+            s.purchases = newVal;
+            saveState();
+            render();
+          });
+        } else if (activeKey === 'minus'){
+          promptEditArchiveValue(s.minusTotal || 0, (newVal) => {
+            s.minusTotal = newVal;
+            saveState();
+            render();
+          });
+        } else {
+          promptEditArchiveValue(cats[activeKey] || 0, (newVal) => {
+            if (!s.cats) s.cats = {};
+            s.cats[activeKey] = newVal;
+            saveState();
+            render();
+          });
+        }
+      });
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  const scrollWrap = document.createElement('div');
+  scrollWrap.className = 'table-scroll';
+  scrollWrap.appendChild(table);
+  wrap.appendChild(scrollWrap);
+  container.appendChild(wrap);
+}
+
+function buildToolbar(){
+  const toolbar = document.createElement('div');
+  toolbar.className = 'toolbar';
+
+  const status = document.createElement('div');
+  status.className = 'status';
+  status.id = 'statusEl';
+  toolbar.appendChild(status);
+
+  return toolbar;
+}
+
+function computeSortScore(student){
+  const attendanceSum = MERGE_GROUPS[0].reduce((sum, k) => sum + (student.cats[k] || 0), 0);
+  const plusGroupSum = MERGE_GROUPS[1].reduce((sum, k) => sum + (student.cats[k] || 0), 0);
+  const plusPersistent = student.c5Total || 0;
+  const minusOnly = student.minusTotal || 0;
+  return attendanceSum + plusGroupSum + plusPersistent + minusOnly;
+}
+
+function render(){
+  const boardsEl = document.getElementById('boards');
+  boardsEl.innerHTML = '';
+  const half = Math.ceil(TOTAL_STUDENTS / 2);
+  const firstHalf = state.students.slice(0, half).sort((a, b) => computeSortScore(b) - computeSortScore(a));
+  const secondHalf = state.students.slice(half).sort((a, b) => computeSortScore(b) - computeSortScore(a));
+
+  const col1 = document.createElement('div');
+  col1.className = 'board-col';
+  col1.appendChild(buildBoard(`תלמידים 1–${half}`, firstHalf));
+
+  const col2 = document.createElement('div');
+  col2.className = 'board-col';
+  col2.appendChild(buildBoard(`תלמידים ${half + 1}–${TOTAL_STUDENTS}`, secondHalf));
+  col2.appendChild(buildToolbar());
+
+  boardsEl.appendChild(col1);
+  boardsEl.appendChild(col2);
+
+  const todayEl = document.getElementById('todaySummary');
+  renderTodayHistoryTable(todayEl);
+
+  fitAllTextCells();
+}
+
+function fitAllTextCells(){
+  const bodyItems = [];
+  document.querySelectorAll('.num-cell .cell-text, .total-cell .cell-text, .point-val').forEach(el => {
+    el.style.fontSize = '';
+    const container = el.closest('td');
+    if (container) bodyItems.push({ el, container });
+  });
+
+  const headerGroups = new Map();
+  document.querySelectorAll('thead .col-reset-btn, thead .merged-dropdown-toggle').forEach(el => {
+    el.style.fontSize = '';
+    const container = el.closest('th');
+    const table = el.closest('table');
+    if (!container || !table) return;
+    if (!headerGroups.has(table)) headerGroups.set(table, []);
+    headerGroups.get(table).push({ el, container });
+  });
+
+  requestAnimationFrame(() => {
+    function fitGroup(items, startSize){
+      function fitsAll(size){
+        return items.every(({ el, container }) => {
+          const limitW = Math.max(container.clientWidth - 2, 0);
+          const limitH = Math.max(container.clientHeight - 2, 0);
+          return el.scrollWidth <= limitW && el.scrollHeight <= limitH;
+        });
+      }
+      function applySize(size){
+        items.forEach(({ el }) => { el.style.fontSize = size + 'px'; });
+      }
+
+      let size = startSize;
+      const minSize = 8;
+      applySize(size);
+      let guard = 0;
+      while (!fitsAll(size) && size > minSize && guard < 150){
+        size -= 1;
+        applySize(size);
+        guard++;
+      }
+    }
+
+    fitGroup(bodyItems, 90);
+    headerGroups.forEach(items => fitGroup(items, 40));
+  });
+}
+
+let resizeTimer = null;
+document.addEventListener('click', () => {
+  document.querySelectorAll('.merged-dropdown-list.open').forEach(l => l.classList.remove('open'));
+  if (expandedGroup !== null){
+    armExpandedGroupTimer();
+  }
+});
+
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(fitAllTextCells, 150);
+});
+
+const SCREENSAVER_IDLE_MS = 30000;
+const SCREENSAVER_ROTATE_MS = 20000;
+const SCREENSAVER_STATES = [null, 'prayer', 'attendance'];
+let screensaverIdleTimer = null;
+let screensaverRotateTimer = null;
+let screensaverActive = false;
+let screensaverStateIndex = 0;
+let screensaverPrevView = 'main';
+
+function currentView(){
+  if (document.getElementById('frequentFlyerView').style.display !== 'none') return 'frequentFlyer';
+  if (document.getElementById('metivtaView').style.display !== 'none') return 'metivta';
+  return 'main';
+}
+
+function enterScreensaver(){
+  if (screensaverActive) return;
+  screensaverActive = true;
+  screensaverPrevView = currentView();
+  clearTimeout(expandedGroupTimer);
+  screensaverStateIndex = 0;
+  if (screensaverPrevView !== 'main') showMain();
+  expandedGroup = SCREENSAVER_STATES[screensaverStateIndex];
+  render();
+  screensaverRotateTimer = setInterval(() => {
+    screensaverStateIndex = (screensaverStateIndex + 1) % SCREENSAVER_STATES.length;
+    expandedGroup = SCREENSAVER_STATES[screensaverStateIndex];
+    render();
+  }, SCREENSAVER_ROTATE_MS);
+}
+
+function exitScreensaver(){
+  if (!screensaverActive) return;
+  screensaverActive = false;
+  clearInterval(screensaverRotateTimer);
+  screensaverRotateTimer = null;
+  expandedGroup = null;
+  if (screensaverPrevView === 'frequentFlyer') showFrequentFlyer();
+  else if (screensaverPrevView === 'metivta') showMetivta();
+  else render();
+}
+
+function armScreensaverIdleTimer(){
+  clearTimeout(screensaverIdleTimer);
+  screensaverIdleTimer = setTimeout(enterScreensaver, SCREENSAVER_IDLE_MS);
+}
+
+['mousemove', 'click', 'touchstart', 'keydown'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    if (screensaverActive) exitScreensaver();
+    armScreensaverIdleTimer();
+  });
+});
+
+armScreensaverIdleTimer();
+
+function dedupDailyArchiveEntries(){
+  if (state.dailyArchiveDedupedV1) return;
+  if (!Array.isArray(state.archive)) { state.dailyArchiveDedupedV1 = true; saveState(); return; }
+
+  const byDayKey = {};
+  const order = [];
+  state.archive.forEach(e => {
+    if (e.type === 'weekly') return;
+    const k = dayKeyOf(e.date);
+    if (!byDayKey[k]){ byDayKey[k] = []; order.push(k); }
+    byDayKey[k].push(e);
+  });
+
+  const merged = [];
+  order.forEach(k => {
+    const entries = byDayKey[k];
+    if (entries.length === 1){
+      merged.push(entries[0]);
+      return;
+    }
+    const base = entries[0];
+    const combined = {
+      date: base.date,
+      students: state.students.map(s => {
+        const cats = { c1: 0, c2: 0, c3: 0, c4: 0, c5: 0, c6: 0, c7: 0, c8: 0 };
+        let purchases = 0, minusTotal = 0, metivtaAttendance = 0, metivtaBehavior = 0;
+        entries.forEach(e => {
+          const es = (e.students || []).find(x => x.id === s.id);
+          if (!es) return;
+          CATEGORIES.forEach(c => { cats[c.key] += (es.cats && es.cats[c.key]) || 0; });
+          purchases += es.purchases || 0;
+          minusTotal += es.minusTotal || 0;
+          metivtaAttendance += es.metivtaAttendance || 0;
+          metivtaBehavior += es.metivtaBehavior || 0;
+        });
+        return { id: s.id, cats, purchases, minusTotal, metivtaSum: metivtaAttendance + metivtaBehavior, metivtaAttendance, metivtaBehavior };
+      }),
+      metivtaExtraStudents: (state.metivtaExtra || []).map(s => {
+        let metivtaAttendance = 0, metivtaBehavior = 0;
+        entries.forEach(e => {
+          const es = (e.metivtaExtraStudents || []).find(x => x.id === s.id);
+          if (!es) return;
+          metivtaAttendance += es.metivtaAttendance || 0;
+          metivtaBehavior += es.metivtaBehavior || 0;
+        });
+        return { id: s.id, metivtaSum: metivtaAttendance + metivtaBehavior, metivtaAttendance, metivtaBehavior };
+      })
+    };
+    merged.push(combined);
+  });
+
+  state.archive = state.archive.filter(e => e.type === 'weekly').concat(merged);
+  state.dailyArchiveDedupedV1 = true;
+  saveState();
+}
+
+function isEmptyDailyEntry(e){
+  const allStudentsEmpty = (e.students || []).every(s => {
+    const catsEmpty = !s.cats || Object.values(s.cats).every(v => !v);
+    return catsEmpty && !s.purchases && !s.minusTotal && !s.metivtaAttendance && !s.metivtaBehavior;
+  });
+  const allExtraEmpty = (e.metivtaExtraStudents || []).every(s => !s.metivtaAttendance && !s.metivtaBehavior);
+  return allStudentsEmpty && allExtraEmpty;
+}
+
+function removeEmptyPlaceholderDays(){
+  if (state.emptyPlaceholdersRemovedV1) return;
+  if (Array.isArray(state.archive)){
+    state.archive = state.archive.filter(e => e.type === 'weekly' || !isEmptyDailyEntry(e));
+  }
+  state.emptyPlaceholdersRemovedV1 = true;
+  saveState();
+}
+
+function importWeek20260905Data(){
+  if (state.importedWeek20260905v2) return;
+  if (Array.isArray(state.archive)){
+    state.archive = state.archive.filter(e => !(e.type === 'weekly' && e.weekKey === '2026-09-05'));
+  }
+  const importData = {
+    'צאלי': [0,3,2,1,2,4], 'ישרוליק': [2,3,0,2,0,4], 'נתנאל': [0,3,0,2,2,4],
+    'מענדי ה.': [2,3,2,2,2,3], 'מענדי ח.': [0,3,0,2,0,4], 'אלעאי': [0,3,0,2,2,0],
+    'יהונתן': [2,3,2,2,2,3], 'איתן': [0,3,0,2,2,0], 'מענדי ל.': [2,3,0,2,2,4],
+    'שלוימי': [2,3,0,2,2,0], 'מוישלה': [2,3,0,2,2,4], 'לוי ס.': [2,3,2,2,2,0],
+    'שמוליק ע.': [2,2,0,2,0,0], 'מולי': [0,3,0,2,2,0], 'שלום': [0,2,0,2,0,0],
+    'חננאל': [2,3,2,2,2,4], 'שמוליק צ.': [0,3,2,2,2,4], 'אושר': [0,3,2,2,2,1],
+    'שמעון': [2,3,2,2,2,4], 'מוטי': [2,3,2,2,2,4], 'לוי ק.': [2,1,2,2,2,0],
+    'נועם': [0,3,2,2,2,4], 'משה': [2,3,2,2,0,2]
+  };
+  const nameToId = {};
+  STUDENT_NAMES.forEach((n, idx) => { nameToId[n] = idx + 1; });
+  const importWeekStartD = getWeekStart(new Date());
+  const importWeekKey = getWeekKey(new Date());
+  if (!Array.isArray(state.archive)) state.archive = [];
+  let wEntry = state.archive.find(e => e.type === 'weekly' && e.weekKey === importWeekKey);
+  if (!wEntry){
+    wEntry = {
+      type: 'weekly',
+      title: 'הנוסע המתמיד',
+      weekKey: importWeekKey,
+      weekStart: importWeekStartD.toISOString(),
+      date: new Date().toISOString(),
+      students: []
+    };
+    state.archive.push(wEntry);
+  }
+  Object.keys(importData).forEach(name => {
+    const id = nameToId[name];
+    if (!id) return;
+    const [morningVal, tefilaVal, mikvaotVal, bonusVal, rambamVal, metivtaVal] = importData[name];
+    let ws = wEntry.students.find(x => x.id === id);
+    if (!ws){
+      ws = { id: id, morning: 0, tefila: 0, mikve: 0, minusDelta: 0, bonus: 0 };
+      wEntry.students.push(ws);
+    }
+    ws.morning = morningVal;
+    ws.tefila = tefilaVal;
+    ws.mikvaotVal = mikvaotVal;
+    ws.bonus = bonusVal;
+    ws.rambamVal = rambamVal;
+    ws.metivtaVal = metivtaVal;
+  });
+  state.importedWeek20260905v2 = true;
+  saveState();
+}
+
+function showStartupError(e){
+  const msg = (e && e.stack) ? e.stack : String(e);
+  const banner = document.createElement('div');
+  banner.style.position = 'fixed';
+  banner.style.top = '0';
+  banner.style.left = '0';
+  banner.style.right = '0';
+  banner.style.zIndex = '300';
+  banner.style.background = '#fff3f3';
+  banner.style.color = '#9C3B3B';
+  banner.style.borderBottom = '2px solid #9C3B3B';
+  banner.style.padding = '10px 14px';
+  banner.style.fontFamily = "'Rubik', sans-serif";
+  banner.style.fontSize = '12px';
+  banner.style.whiteSpace = 'pre-wrap';
+  banner.style.wordBreak = 'break-word';
+  banner.textContent = 'שגיאה בטעינת האתר: ' + msg;
+  document.body.appendChild(banner);
+}
+
+async function initApp(){
+  try{
+    setStatus('טוען…');
+    await loadState();
+    importWeek20260905Data();
+    dedupDailyArchiveEntries();
+    removeEmptyPlaceholderDays();
+    render();
+    setStatus('');
+    checkAutoReset();
+    subscribeToRemoteStateChanges();
+
+    if (document.fonts && document.fonts.ready){
+      document.fonts.ready.then(() => {
+        fitAllTextCells();
+      });
+    }
+  } catch(e){
+    showStartupError(e);
+  }
+}
+
+const ARCHIVE_ACCESS_CODE = '963';
+let archiveEditUnlocked = false;
+let archiveEditAccessTimer = null;
+
+function showArchiveCodePrompt(onSuccess){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const box = document.createElement('div');
+  box.className = 'modal-box';
+
+  const msg = document.createElement('div');
+  msg.className = 'modal-msg';
+  msg.textContent = 'הזן קוד לעריכת ארכיון:';
+  box.appendChild(msg);
+
+  const input = document.createElement('input');
+  input.type = 'password';
+  input.className = 'lock-input';
+  input.inputMode = 'numeric';
+  input.maxLength = 10;
+  input.autocomplete = 'off';
+  box.appendChild(input);
+
+  const errorEl = document.createElement('div');
+  errorEl.className = 'lock-error';
+  box.appendChild(errorEl);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'modal-btns';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'modal-btn modal-btn-cancel';
+  cancelBtn.textContent = 'ביטול';
+  cancelBtn.addEventListener('click', () => document.body.removeChild(overlay));
+  btnRow.appendChild(cancelBtn);
+
+  function trySubmit(){
+    if (input.value.trim() === ARCHIVE_ACCESS_CODE){
+      archiveEditUnlocked = true;
+      document.body.removeChild(overlay);
+      onSuccess();
+    } else {
+      errorEl.textContent = 'קוד שגוי, נסה שוב';
+      input.value = '';
+      input.focus();
+    }
+  }
+  input.addEventListener('input', () => {
+    if (input.value.trim() === ARCHIVE_ACCESS_CODE){
+      archiveEditUnlocked = true;
+      document.body.removeChild(overlay);
+      onSuccess();
+    }
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') trySubmit(); });
+
+  box.appendChild(btnRow);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  setTimeout(() => input.focus(), 50);
+}
+
+function armArchiveEditAccessTimer(){
+  clearTimeout(archiveEditAccessTimer);
+  archiveEditAccessTimer = setTimeout(() => {
+    archiveEditUnlocked = false;
+  }, 30000);
+}
+
+function requireArchiveEditAccess(callback){
+  if (archiveEditUnlocked){
+    armArchiveEditAccessTimer();
+    callback();
+    return;
+  }
+  showArchiveCodePrompt(() => {
+    armArchiveEditAccessTimer();
+    callback();
+  });
+}
+
+function promptEditArchiveValue(currentValue, onSave){
+  requireArchiveEditAccess(() => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+
+    const msg = document.createElement('div');
+    msg.className = 'modal-msg';
+    msg.textContent = 'ערוך ערך:';
+    box.appendChild(msg);
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'lock-input';
+    input.value = currentValue || 0;
+    box.appendChild(input);
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'modal-btns';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'modal-btn modal-btn-cancel';
+    cancelBtn.textContent = 'ביטול';
+    cancelBtn.addEventListener('click', () => document.body.removeChild(overlay));
+    btnRow.appendChild(cancelBtn);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'modal-btn modal-btn-confirm';
+    saveBtn.textContent = 'שמור';
+    saveBtn.addEventListener('click', () => {
+      const newVal = parseInt(input.value, 10) || 0;
+      document.body.removeChild(overlay);
+      onSave(newVal);
+    });
+    btnRow.appendChild(saveBtn);
+
+    box.appendChild(btnRow);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+  });
+}
+
+const ACCESS_CODE = '963';
+let editUnlocked = false;
+
+function showCodePrompt(onSuccess){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const box = document.createElement('div');
+  box.className = 'modal-box';
+
+  const msg = document.createElement('div');
+  msg.className = 'modal-msg';
+  msg.textContent = 'הזן קוד לעריכה:';
+  box.appendChild(msg);
+
+  const input = document.createElement('input');
+  input.type = 'password';
+  input.className = 'lock-input';
+  input.inputMode = 'numeric';
+  input.maxLength = 10;
+  input.autocomplete = 'off';
+  box.appendChild(input);
+
+  const errorEl = document.createElement('div');
+  errorEl.className = 'lock-error';
+  box.appendChild(errorEl);
+
+  const btnRow = document.createElement('div');
+  btnRow.className = 'modal-btns';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'modal-btn modal-btn-cancel';
+  cancelBtn.textContent = 'ביטול';
+  cancelBtn.addEventListener('click', () => document.body.removeChild(overlay));
+  btnRow.appendChild(cancelBtn);
+
+  function trySubmit(){
+    if (input.value.trim() === ACCESS_CODE){
+      editUnlocked = true;
+      document.body.removeChild(overlay);
+      onSuccess();
+    } else {
+      errorEl.textContent = 'קוד שגוי, נסה שוב';
+      input.value = '';
+      input.focus();
+    }
+  }
+  input.addEventListener('input', () => {
+    if (input.value.trim() === ACCESS_CODE){
+      editUnlocked = true;
+      document.body.removeChild(overlay);
+      onSuccess();
+    }
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') trySubmit(); });
+
+  box.appendChild(btnRow);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  setTimeout(() => input.focus(), 50);
+}
+
+let editAccessTimer = null;
+
+function armEditAccessTimer(){
+  clearTimeout(editAccessTimer);
+  editAccessTimer = setTimeout(() => {
+    editUnlocked = false;
+  }, 30000);
+}
+
+function requireEditAccess(callback){
+  if (editUnlocked){
+    armEditAccessTimer();
+    callback();
+    return;
+  }
+  showCodePrompt(() => {
+    armEditAccessTimer();
+    callback();
+  });
+}
+
+initApp();
+</script>
+
+</body>
+</html>

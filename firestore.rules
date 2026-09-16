@@ -11,5 +11,13 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
     }
+
+    // Classroom points board (classroom-points/index.html): one shared
+    // document, open to anyone with the link. There is no Firebase Auth
+    // login for this feature - the page itself gates point-editing behind
+    // a PIN code in its own UI, same model as before.
+    match /classroom_points/{docId} {
+      allow read, write: if true;
+    }
   }
 }
