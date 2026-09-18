@@ -455,7 +455,17 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 .quiz-feedback.correct { color: #1b5e20; }
 .quiz-feedback.incorrect { color: #8a2e24; }
 
-.quiz-group { margin: 18px 0; }
+.quiz-group {
+  background: var(--accent-soft);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin: 18px 0;
+}
+.quiz-group.open {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+}
 .quiz-group-title {
   font-family: var(--font-head);
   font-size: 1.15rem;
@@ -480,7 +490,7 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   font-size: .85rem;
   color: var(--ink-soft);
 }
-.quiz-group-body .quiz { margin: 12px 0 0; }
+.quiz-group-body .quiz { margin: 0; }
 .quiz-progress {
   margin: 0 0 10px;
   font-size: .85rem;

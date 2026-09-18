@@ -67,7 +67,6 @@ function initQuizGroups() {
     if (members.length > 1) {
       progressEl = document.createElement("p");
       progressEl.className = "quiz-progress";
-      body.appendChild(progressEl);
     }
 
     parent.insertBefore(wrapper, first);
@@ -82,7 +81,14 @@ function initQuizGroups() {
       quizGroupInfo.set(q, { members, index: i, progressEl });
     });
 
+    function placeProgress(index) {
+      if (!progressEl) return;
+      members[index].insertBefore(progressEl, members[index].firstChild);
+      progressEl.textContent = `שאלה ${index + 1} מתוך ${members.length}`;
+    }
+
     revealBtn.addEventListener("click", () => {
+      wrapper.classList.add("open");
       title.hidden = true;
       revealBtn.hidden = true;
       count.hidden = true;
@@ -92,7 +98,7 @@ function initQuizGroups() {
       members.forEach((q, i) => {
         q.hidden = i !== startIndex;
       });
-      if (progressEl) progressEl.textContent = `שאלה ${startIndex + 1} מתוך ${members.length}`;
+      placeProgress(startIndex);
     });
   });
 }
@@ -104,7 +110,10 @@ function advanceQuizGroup(quizEl) {
   if (index >= members.length - 1) return;
   members[index].hidden = true;
   members[index + 1].hidden = false;
-  if (progressEl) progressEl.textContent = `שאלה ${index + 2} מתוך ${members.length}`;
+  if (progressEl) {
+    members[index + 1].insertBefore(progressEl, members[index + 1].firstChild);
+    progressEl.textContent = `שאלה ${index + 2} מתוך ${members.length}`;
+  }
 }
 
 initQuizGroups();
