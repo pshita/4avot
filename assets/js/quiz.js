@@ -46,6 +46,10 @@ function initQuizGroups() {
     const wrapper = document.createElement("div");
     wrapper.className = "quiz-group";
 
+    const title = document.createElement("p");
+    title.className = "quiz-group-title";
+    title.textContent = "שינון מכפיל זיכרון";
+
     const revealBtn = document.createElement("button");
     revealBtn.type = "button";
     revealBtn.className = "quiz-reveal-btn";
@@ -67,6 +71,7 @@ function initQuizGroups() {
     }
 
     parent.insertBefore(wrapper, first);
+    wrapper.appendChild(title);
     wrapper.appendChild(revealBtn);
     wrapper.appendChild(count);
     wrapper.appendChild(body);
@@ -78,6 +83,7 @@ function initQuizGroups() {
     });
 
     revealBtn.addEventListener("click", () => {
+      title.hidden = true;
       revealBtn.hidden = true;
       count.hidden = true;
       body.hidden = false;
