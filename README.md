@@ -21,7 +21,7 @@ register.html                       # הרשמה
 login.html                          # התחברות
 firestore.rules                     # כללי אבטחה ל-Firestore (מדביקים בקונסולת Firebase)
 lessons/
-  arba-avot-nezikin.html            # השיעור הראשון: ארבעה אבות נזיקין
+  shor-umave.html                   # השור, הבור, המבעה וההבער (כולל ארבעה אבות נזיקין)
 assets/
   css/style.css                     # כל העיצוב
   js/main.js                        # פתיחת הסעיף הראשון בשיעור
@@ -75,7 +75,7 @@ assets/
 ## הוספת שיעור חדש
 
 1. יוצרים קובץ חדש תחת `lessons/` (למשל `lessons/mazik-adam-be-adam.html`),
-   ומעתיקים ממנו את השלד של `lessons/arba-avot-nezikin.html` (header, footer, קישור ל־CSS/JS).
+   ומעתיקים ממנו את השלד של `lessons/shor-umave.html` (header, footer, קישור ל־CSS/JS).
 2. יוצרים תיקיות מדיה תואמות: `assets/images/<שם-השיעור>/` ו־`assets/videos/<שם-השיעור>/`.
 3. מוסיפים כרטיס חדש ל־`index.html` בתוך `.lesson-grid`.
 
