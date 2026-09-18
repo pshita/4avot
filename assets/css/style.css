@@ -455,6 +455,32 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 .quiz-feedback.correct { color: #1b5e20; }
 .quiz-feedback.incorrect { color: #8a2e24; }
 
+.quiz-group { margin: 18px 0; }
+.quiz-reveal-btn {
+  font-family: inherit;
+  font-size: .95rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+.quiz-reveal-btn:hover { opacity: .9; }
+.quiz-group-count {
+  margin: 8px 0 0;
+  font-size: .85rem;
+  color: var(--ink-soft);
+}
+.quiz-group-body .quiz { margin: 12px 0 0; }
+.quiz-progress {
+  margin: 0 0 10px;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
 footer.site-footer {
   border-top: 1px solid var(--line);
   padding: 26px 0 50px;

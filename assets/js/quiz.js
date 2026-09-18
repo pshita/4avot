@@ -21,6 +21,88 @@ function markSectionDoneIfAny(quizEl) {
   });
 }
 
+// Wraps each run of directly-adjacent .quiz elements in a collapsed
+// "שנחזור על זה?" group, revealed one question at a time.
+const quizGroupInfo = new Map(); // quizEl -> { members, index, progressEl }
+
+function initQuizGroups() {
+  const quizzes = Array.from(document.querySelectorAll(".quiz"));
+  const runs = [];
+  let current = [];
+  quizzes.forEach((q) => {
+    if (current.length && q.previousElementSibling === current[current.length - 1]) {
+      current.push(q);
+    } else {
+      if (current.length) runs.push(current);
+      current = [q];
+    }
+  });
+  if (current.length) runs.push(current);
+
+  runs.forEach((members) => {
+    const first = members[0];
+    const parent = first.parentElement;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "quiz-group";
+
+    const revealBtn = document.createElement("button");
+    revealBtn.type = "button";
+    revealBtn.className = "quiz-reveal-btn";
+    revealBtn.textContent = "שנחזור על זה?";
+
+    const count = document.createElement("p");
+    count.className = "quiz-group-count";
+    count.textContent = members.length > 1 ? `${members.length} שאלות` : "שאלה אחת";
+
+    const body = document.createElement("div");
+    body.className = "quiz-group-body";
+    body.hidden = true;
+
+    let progressEl = null;
+    if (members.length > 1) {
+      progressEl = document.createElement("p");
+      progressEl.className = "quiz-progress";
+      body.appendChild(progressEl);
+    }
+
+    parent.insertBefore(wrapper, first);
+    wrapper.appendChild(revealBtn);
+    wrapper.appendChild(count);
+    wrapper.appendChild(body);
+
+    members.forEach((q, i) => {
+      body.appendChild(q);
+      q.hidden = i !== 0;
+      quizGroupInfo.set(q, { members, index: i, progressEl });
+    });
+
+    revealBtn.addEventListener("click", () => {
+      revealBtn.hidden = true;
+      count.hidden = true;
+      body.hidden = false;
+      let startIndex = members.findIndex((q) => q.dataset.answered !== "true");
+      if (startIndex === -1) startIndex = members.length - 1;
+      members.forEach((q, i) => {
+        q.hidden = i !== startIndex;
+      });
+      if (progressEl) progressEl.textContent = `שאלה ${startIndex + 1} מתוך ${members.length}`;
+    });
+  });
+}
+
+function advanceQuizGroup(quizEl) {
+  const info = quizGroupInfo.get(quizEl);
+  if (!info) return;
+  const { members, index, progressEl } = info;
+  if (index >= members.length - 1) return;
+  members[index].hidden = true;
+  members[index + 1].hidden = false;
+  if (progressEl) progressEl.textContent = `שאלה ${index + 2} מתוך ${members.length}`;
+}
+
+initQuizGroups();
+
 document.querySelectorAll(".quiz").forEach((quizEl) => {
   const qid = quizEl.dataset.questionId;
   const feedback = quizEl.querySelector(".quiz-feedback");
@@ -50,6 +132,8 @@ document.querySelectorAll(".quiz").forEach((quizEl) => {
         }
         markSectionDoneIfAny(quizEl);
       }
+
+      setTimeout(() => advanceQuizGroup(quizEl), 1400);
     });
   });
 });
