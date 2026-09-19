@@ -456,12 +456,22 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 .quiz-feedback.incorrect { color: #8a2e24; }
 
 .quiz-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 201px;
   background: var(--accent-soft);
   border-radius: 10px;
   padding: 16px 18px;
   margin: 18px 0;
+  box-sizing: border-box;
 }
 .quiz-group.open {
+  display: block;
+  min-height: 0;
+  text-align: start;
   background: none;
   border-radius: 0;
   padding: 0;
@@ -485,11 +495,6 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   cursor: pointer;
 }
 .quiz-reveal-btn:hover { opacity: .9; }
-.quiz-group-count {
-  margin: 8px 0 0;
-  font-size: .85rem;
-  color: var(--ink-soft);
-}
 .quiz-group-body .quiz { margin: 0; }
 .quiz-progress {
   margin: 0 0 10px;

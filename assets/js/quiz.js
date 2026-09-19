@@ -55,10 +55,6 @@ function initQuizGroups() {
     revealBtn.className = "quiz-reveal-btn";
     revealBtn.textContent = "שנחזור על זה?";
 
-    const count = document.createElement("p");
-    count.className = "quiz-group-count";
-    count.textContent = members.length > 1 ? `${members.length} שאלות` : "שאלה אחת";
-
     const body = document.createElement("div");
     body.className = "quiz-group-body";
     body.hidden = true;
@@ -72,7 +68,6 @@ function initQuizGroups() {
     parent.insertBefore(wrapper, first);
     wrapper.appendChild(title);
     wrapper.appendChild(revealBtn);
-    wrapper.appendChild(count);
     wrapper.appendChild(body);
 
     members.forEach((q, i) => {
@@ -91,7 +86,6 @@ function initQuizGroups() {
       wrapper.classList.add("open");
       title.hidden = true;
       revealBtn.hidden = true;
-      count.hidden = true;
       body.hidden = false;
       let startIndex = members.findIndex((q) => q.dataset.answered !== "true");
       if (startIndex === -1) startIndex = members.length - 1;
