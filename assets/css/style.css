@@ -79,8 +79,6 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 }
 
 /* ===== Auth (login / register) ===== */
-/* כפתור ההתחברות מוסתר זמנית - להסרת הבלוק הזה כדי להחזיר */
-#auth-area-out { display: none !important; }
 .auth-area {
   display: flex;
   align-items: center;
