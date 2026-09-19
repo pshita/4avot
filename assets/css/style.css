@@ -509,3 +509,20 @@ footer.site-footer {
   font-size: .85rem;
   text-align: center;
 }
+
+.next-lesson {
+  text-align: center;
+  margin: 34px 0 10px;
+}
+.next-lesson-btn {
+  display: inline-block;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  padding: 12px 28px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+}
+.next-lesson-btn:hover { opacity: .9; }
