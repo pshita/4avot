@@ -118,12 +118,6 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 }
 .dropdown-menu .auth-area { margin-inline-start: 0; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; }
 
-.lesson-source.dropdown-trigger {
-  color: var(--ink-soft);
-  font-size: .95rem;
-}
-.lesson-source.dropdown-trigger:hover { color: var(--accent-strong); }
-
 /* ===== Auth (login / register) ===== */
 .auth-area {
   display: flex;
