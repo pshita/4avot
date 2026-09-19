@@ -78,6 +78,52 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   font-size: 1.1rem;
 }
 
+/* ===== Dropdown menus (brand menu, lesson picker) ===== */
+.dropdown { position: relative; }
+.dropdown-trigger {
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 20;
+}
+.dropdown-item {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: .95rem;
+}
+.dropdown-item:hover { background: var(--accent-soft); color: var(--accent-strong); }
+.dropdown-item.active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+.dropdown-menu .auth-area { margin-inline-start: 0; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px; }
+
+.lesson-source.dropdown-trigger {
+  color: var(--ink-soft);
+  font-size: .95rem;
+}
+.lesson-source.dropdown-trigger:hover { color: var(--accent-strong); }
+
 /* ===== Auth (login / register) ===== */
 .auth-area {
   display: flex;
@@ -521,11 +567,15 @@ footer.site-footer {
   text-align: center;
 }
 
-.next-lesson {
-  text-align: center;
+.lesson-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   margin: 34px 0 10px;
 }
-.next-lesson-btn {
+.lesson-nav.single { justify-content: center; }
+.lesson-nav-btn {
   display: inline-block;
   font-family: inherit;
   font-weight: 600;
@@ -536,4 +586,14 @@ footer.site-footer {
   background: var(--accent);
   color: #fff;
 }
-.next-lesson-btn:hover { opacity: .9; }
+.lesson-nav-btn:hover { opacity: .9; }
+.lesson-nav-btn--secondary {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.lesson-nav-btn--secondary:hover {
+  opacity: 1;
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
