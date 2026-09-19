@@ -21,6 +21,22 @@ function markSectionDoneIfAny(quizEl) {
   });
 }
 
+// Wraps the question + choices in their own box so the correct/incorrect
+// feedback can pop up directly on top of them instead of pushing them down.
+function wrapQuizBody(quizEl) {
+  const body = document.createElement("div");
+  body.className = "quiz-body";
+  const question = quizEl.querySelector(".quiz-question");
+  const choices = quizEl.querySelector(".quiz-choices");
+  const feedback = quizEl.querySelector(".quiz-feedback");
+  quizEl.insertBefore(body, question);
+  body.appendChild(question);
+  body.appendChild(choices);
+  body.appendChild(feedback);
+}
+
+document.querySelectorAll(".quiz").forEach(wrapQuizBody);
+
 // Wraps each run of directly-adjacent .quiz elements in a collapsed
 // "שנחזור על זה?" group, revealed one question at a time.
 const quizGroupInfo = new Map(); // quizEl -> { members, index, progressEl }
@@ -126,9 +142,8 @@ document.querySelectorAll(".quiz").forEach((quizEl) => {
       if (!isCorrect) btn.classList.add("incorrect");
 
       feedback.hidden = false;
-      feedback.textContent = isCorrect ? "נכון!" : "לא נכון — התשובה הנכונה מסומנת למטה.";
+      feedback.textContent = isCorrect ? "נכון!" : "לא נכון";
       feedback.className = "quiz-feedback " + (isCorrect ? "correct" : "incorrect");
-      quizEl.insertBefore(feedback, quizEl.firstChild);
 
       const user = getCurrentQuizUser();
       if (isCorrect && user) {
@@ -143,7 +158,10 @@ document.querySelectorAll(".quiz").forEach((quizEl) => {
         markSectionDoneIfAny(quizEl);
       }
 
-      setTimeout(() => advanceQuizGroup(quizEl), 1400);
+      setTimeout(() => {
+        feedback.hidden = true;
+        advanceQuizGroup(quizEl);
+      }, 1400);
     });
   });
 });
