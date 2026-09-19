@@ -78,7 +78,7 @@ function initQuizGroups() {
 
     function placeProgress(index) {
       if (!progressEl) return;
-      members[index].insertBefore(progressEl, members[index].firstChild);
+      members[index].appendChild(progressEl);
       progressEl.textContent = `שאלה ${index + 1} מתוך ${members.length}`;
     }
 
@@ -105,7 +105,7 @@ function advanceQuizGroup(quizEl) {
   members[index].hidden = true;
   members[index + 1].hidden = false;
   if (progressEl) {
-    members[index + 1].insertBefore(progressEl, members[index + 1].firstChild);
+    members[index + 1].appendChild(progressEl);
     progressEl.textContent = `שאלה ${index + 2} מתוך ${members.length}`;
   }
 }
@@ -126,8 +126,9 @@ document.querySelectorAll(".quiz").forEach((quizEl) => {
       if (!isCorrect) btn.classList.add("incorrect");
 
       feedback.hidden = false;
-      feedback.textContent = isCorrect ? "נכון!" : "לא נכון — התשובה הנכונה מסומנת למעלה.";
+      feedback.textContent = isCorrect ? "נכון!" : "לא נכון — התשובה הנכונה מסומנת למטה.";
       feedback.className = "quiz-feedback " + (isCorrect ? "correct" : "incorrect");
+      quizEl.insertBefore(feedback, quizEl.firstChild);
 
       const user = getCurrentQuizUser();
       if (isCorrect && user) {
