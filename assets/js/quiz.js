@@ -75,6 +75,11 @@ function initQuizGroups() {
     body.className = "quiz-group-body";
     body.hidden = true;
 
+    const doneMsg = document.createElement("p");
+    doneMsg.className = "quiz-group-done";
+    doneMsg.textContent = "כל הכבוד!";
+    doneMsg.hidden = true;
+
     let progressEl = null;
     if (members.length > 1) {
       progressEl = document.createElement("p");
@@ -85,11 +90,14 @@ function initQuizGroups() {
     wrapper.appendChild(title);
     wrapper.appendChild(revealBtn);
     wrapper.appendChild(body);
+    wrapper.appendChild(doneMsg);
+
+    const groupState = { wrapper, title, revealBtn, body, doneMsg };
 
     members.forEach((q, i) => {
       body.appendChild(q);
       q.hidden = i !== 0;
-      quizGroupInfo.set(q, { members, index: i, progressEl });
+      quizGroupInfo.set(q, { members, index: i, progressEl, groupState });
     });
 
     function placeProgress(index) {
@@ -102,6 +110,7 @@ function initQuizGroups() {
       wrapper.classList.add("open");
       title.hidden = true;
       revealBtn.hidden = true;
+      doneMsg.hidden = true;
       body.hidden = false;
       let startIndex = members.findIndex((q) => q.dataset.answered !== "true");
       if (startIndex === -1) startIndex = members.length - 1;
@@ -116,14 +125,26 @@ function initQuizGroups() {
 function advanceQuizGroup(quizEl) {
   const info = quizGroupInfo.get(quizEl);
   if (!info) return;
-  const { members, index, progressEl } = info;
-  if (index >= members.length - 1) return;
+  const { members, index, progressEl, groupState } = info;
+  if (index >= members.length - 1) {
+    completeQuizGroup(groupState);
+    return;
+  }
   members[index].hidden = true;
   members[index + 1].hidden = false;
   if (progressEl) {
     members[index + 1].appendChild(progressEl);
     progressEl.textContent = `שאלה ${index + 2} מתוך ${members.length}`;
   }
+}
+
+function completeQuizGroup(groupState) {
+  const { wrapper, title, revealBtn, body, doneMsg } = groupState;
+  wrapper.classList.remove("open");
+  body.hidden = true;
+  title.hidden = true;
+  revealBtn.hidden = true;
+  doneMsg.hidden = false;
 }
 
 initQuizGroups();
