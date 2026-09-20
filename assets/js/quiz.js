@@ -64,12 +64,12 @@ function initQuizGroups() {
 
     const title = document.createElement("p");
     title.className = "quiz-group-title";
-    title.textContent = "שינון מכפיל זיכרון";
+    title.textContent = "תרגול מכפיל את הזיכרון";
 
     const revealBtn = document.createElement("button");
     revealBtn.type = "button";
     revealBtn.className = "quiz-reveal-btn";
-    revealBtn.textContent = "שנחזור על זה?";
+    revealBtn.textContent = "להכפיל?";
 
     const body = document.createElement("div");
     body.className = "quiz-group-body";

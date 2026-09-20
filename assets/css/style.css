@@ -520,14 +520,15 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 
 .quiz-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   text-align: center;
-  min-height: 67px;
+  min-height: 40px;
   background: var(--accent-soft);
   border-radius: 10px;
-  padding: 8px 16px;
+  padding: 6px 16px;
   margin: 18px 0;
   box-sizing: border-box;
 }
@@ -541,10 +542,10 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 }
 .quiz-group-title {
   font-family: var(--font-head);
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--accent-strong);
-  margin: 0 0 4px;
+  margin: 0;
 }
 .quiz-group-done {
   font-family: var(--font-head);
