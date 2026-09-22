@@ -91,21 +91,25 @@
     .f-p textarea { font-size: .98rem; line-height: 1.6; }
     .f-p.cls-p-strong textarea { font-weight: 600; }
     .f-p.cls-p-light textarea { color: var(--ink-soft); }
-    .export-panel {
-      background: var(--surface);
-      border: 1px solid var(--accent);
+    .save-status {
+      font-size: .76rem;
+      color: var(--ink-soft);
+      margin-inline-start: auto;
+      min-width: 70px;
+      text-align: left;
+    }
+    .save-status.status-saving { color: var(--ink-soft); }
+    .save-status.status-saved { color: #3a7d44; }
+    .save-status.status-error { color: #b23b3b; }
+    #auth-gate {
+      background: var(--accent-soft);
+      border: 1px solid var(--line);
       border-radius: 14px;
-      padding: 18px;
-      margin-top: 24px;
+      padding: 20px;
+      text-align: center;
     }
-    .export-panel h2 { font-size: 1.05rem; margin: 0 0 8px; }
-    .export-panel p { font-size: .88rem; color: var(--ink-soft); margin: 0 0 12px; }
-    .export-panel textarea {
-      width: 100%; min-height: 140px; font-family: monospace; font-size: .78rem;
-      direction: ltr; text-align: left; border: 1px solid var(--line);
-      border-radius: 8px; padding: 10px; background: var(--bg);
-      color: var(--ink);
-    }
+    #auth-gate p { margin: 0 0 12px; font-size: .95rem; }
+    #auth-gate .btn { display: inline-block; text-decoration: none; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -124,73 +128,58 @@
     <p class="admin-sub">כותרות וטקסט של שיעורי "ארבעה אבות"</p>
 
     <div class="howto">
-      עורכים כאן חופשי - כל שינוי נשמר אוטומטית בדפדפן שלכם (כטיוטה, לא באתר החי).
-      כשסיימתם, לוחצים על <strong>"העתקת שינויים"</strong> ומדביקים (Ctrl+V) בהודעה לקלוד בצ'אט
-      עם הבקשה לעדכן את האתר.
+      עורכים כאן חופשי - כל שינוי <strong>נשמר מיד באתר החי</strong>, ברגע שמפסיקים להקליד.
+      אין צורך להעתיק, להוריד קובץ, או לשלוח כלום.
     </div>
 
-    <div class="toolbar">
-      <span class="dirty-count" id="dirty-count">אין שינויים עדיין</span>
-      <div class="toolbar-actions">
-        <button type="button" class="btn" id="btn-reset-all">אפס הכל</button>
-        <button type="button" class="btn btn-primary" id="btn-export" disabled>העתקת שינויים</button>
+    <div id="auth-gate">
+      <p>כדי לערוך צריך להתחבר לחשבון באתר.</p>
+      <a class="btn btn-primary" href="login.html">התחברות</a>
+    </div>
+
+    <div id="admin-main" hidden>
+      <div class="toolbar">
+        <span class="dirty-count" id="dirty-count">מחובר/ת</span>
+        <div class="toolbar-actions">
+          <button type="button" class="btn" id="btn-logout">התנתקות</button>
+        </div>
       </div>
-    </div>
 
-    <div class="tabs" id="tabs"></div>
-    <div id="content"></div>
-
-    <div class="export-panel" id="export-panel" hidden>
-      <h2 id="export-title">הועתק ללוח ✓</h2>
-      <p>עכשיו הדביקו (Ctrl+V) בהודעה לקלוד בצ'אט. אם ההעתקה לא עבדה, אפשר לסמן את הטקסט למטה ולהעתיק ידנית, או להוריד כקובץ.</p>
-      <button type="button" class="btn" id="btn-download" style="margin-bottom: 10px;">הורדת קובץ JSON (חלופה)</button>
-      <textarea id="export-text" readonly></textarea>
+      <div class="tabs" id="tabs"></div>
+      <div id="content"></div>
     </div>
   </div>
 
   <footer class="site-footer"></footer>
 
-  <script>
+  <script type="module">
+    import { getDb, isReady, watchAuthState, logoutUser } from "./assets/js/auth.js";
+    import { doc, getDoc, setDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
     var LESSON_ORDER = ["avot-vetoldot", "shor-umave", "lo-hari-hashor", "gabei-shabbat-tanan", "umai-ika", "gabei-tumaot-tanan"];
     var LESSONS = {"avot-vetoldot": {"title": "אבות נזיקין", "items": [{"id": "avot-vetoldot:0", "tag": "h1", "cls": "lesson-title", "text": "אבות ותולדות"}, {"id": "avot-vetoldot:1", "tag": "p", "cls": "p-light", "text": "יהודה קנטור הוא ישראלי שנחטף בלידתו ונמסר לאימוץ אצל משפחה חשוכת ילדים. להוריו נאמר שנולד חולה ונפטר מיד. להורים וילדים יש דמיון מוחלט מבחינה גנטית, כך אחרי שנים רבות הוא פנה לחברה ישראלית פורצת דרך, שמחזיקה במאגר גנטי אדיר ומצא התאמה מוחלטת בינו לאדם אחר, זה היה אביו האמיתי. בדרך כלל אבא ובן יהיו דומים גם בתווי הפנים וחלק מהאופי והכישורים."}, {"id": "avot-vetoldot:2", "tag": "p", "cls": "p-strong", "text": "אבא קוראים רק למי שיש לו ילד. והילד חייב להיות דומה לאבא."}, {"id": "avot-vetoldot:3", "tag": "h3", "cls": "", "text": "מכה שלא כתובה בתורה"}, {"id": "avot-vetoldot:4", "tag": "p", "cls": "p-strong", "text": "למדנו שיש הבדל בין כל אחד מהמזיקים שהתורה מחייבת בהם. \"בור\" זה תקלה ברשות הרבים ובא מישהו אחר וניזוק בו."}, {"id": "avot-vetoldot:5", "tag": "p", "cls": "p-strong", "text": "אדם שבר בקבוק זכוכית ברשות הרבים, אופניים עברו שם וקיבלו חור בגלגל, לא כתוב בתורה מה הדין במקרה כזה, גם לא כתוב מה הדין אם שפך שמן זית, קנולה, או קוקוס ובא מישהו אחר, החליק וניזוק."}, {"id": "avot-vetoldot:6", "tag": "p", "cls": "p-strong", "text": "המקרים האלו ממש דומים לבור שכתוב בתורה, בשניהם מדובר בתקלה שהמזיק עשה ברשות הרבים ובא מישהו אחר וניזוק. לכן המקרים האלו הם תולדה של המזיק \"בור\" והדין שלהם דומה."}, {"id": "avot-vetoldot:7", "tag": "p", "cls": "p-strong", "text": "\"אב\": הוא המזיק שכתוב בתורה במפורש שהמזיק חייב עליו. \"תולדה\": מזיקים נוספים שלא כתובים בתורה, אבל הם דומים למזיקים שכתובים בתורה וגם בהם חייב."}]}, "shor-umave": {"title": "השור, הבור, המבעה וההבער", "items": [{"id": "shor-umave:0", "tag": "h1", "cls": "lesson-title", "text": "השור, הבור, המבעה וההבער"}, {"id": "shor-umave:1", "tag": "h2", "cls": "", "text": "המזיקים"}, {"id": "shor-umave:2", "tag": "h3", "cls": "", "text": "שן"}, {"id": "shor-umave:3", "tag": "p", "cls": "p-light", "text": "רועי צאן ובקר מעדיפים לשלוח את הבהמות שלהם לשטחי מרעה, שם הם יוכלו לאכול חינם וליהנות ממרחבים עצומים. גם היום המדינה מחכירה בזול שטחים לא מיושבים למרעה וזה מייצר הרבה ויכוחים:"}, {"id": "shor-umave:4", "tag": "p", "cls": "", "text": "התורה כבר מספרת שרועי הצאן של לוט נתנו להם לאכול בשטחים פרטיים, זה הוביל לריב עם רועי הצאן של אברהם. כדי לשמור על שלום, הם נפרדו אחד מהשני ולוט בחר לעבור לאזור העיר סדום."}, {"id": "shor-umave:5", "tag": "p", "cls": "", "text": "באנדי הוא תושב ארצות הברית שבבעלותו 1500 פרות ושוורים, הם מסתובבים וגדלים בשטח עצום של 600,000 דונם, פי 5 מכל ירושלים. בשנת תשע\"ד התעורר ויכוח בינו לממשלה למי שייך השטח, הם חייבו אותו מיליון דולר על כל מה שבעלי החיים שלו אכלו, אבל הוא לא היה מוכן לשלם. השוטרים הצליחו בכוח להחרים לו 400 מבעלי החיים שלו, אבל 1000 מפגינים, מאות מתוכם חמושים, הגיעו לתמוך בו ולעצור את השוטרים בכוח."}, {"id": "shor-umave:6", "tag": "p", "cls": "p-strong", "text": "\"שן\" הוא שם של נזק שקורה כי בעל חי אוכל כדי ליהנות מהאכילה."}, {"id": "shor-umave:7", "tag": "h3", "cls": "", "text": "רגל"}, {"id": "shor-umave:8", "tag": "p", "cls": "", "text": "בעל חי שהלך ממקום אחד למקום אחר, בדרך היו חפצים והוא דרך עליהם. משום מה הוא לא הבין שאם דורכים עליהם, הם עלולים להתקלקל ועדיף לעבור מהצד."}, {"id": "shor-umave:9", "tag": "p", "cls": "p-strong", "text": "\"רגל\" הוא שם של נזק שקורה כי בעל חי רוצה ללכת ממקום אחד לשני ומזיק בהליכתו."}, {"id": "shor-umave:10", "tag": "h3", "cls": "", "text": "בור"}, {"id": "shor-umave:11", "tag": "p", "cls": "", "text": "הכבישים מלאים בורות של ביוב, חשמל ותקשורת. בערים מושלגות, השלג ממש אוכל את הכביש לאט לאט ונפתחים בו בורות. רק את עיריית ניו יורק תובעים אלפי אנשים בשנה, בסך כולל של מיליוני דולרים על נזקים למערכת הגלגלים מבורות בכביש. בעיר לוס אנג'לס נפער בולען עצום ושני רכבים נפלו בתוכו."}, {"id": "shor-umave:12", "tag": "p", "cls": "p-strong", "text": "\"בור\" הוא שם של נזק שקורה כי השאיר בור פתוח, נפלו בו בעלי חיים או רכוש וניזוקו."}, {"id": "shor-umave:13", "tag": "h3", "cls": "", "text": "אש"}, {"id": "shor-umave:14", "tag": "p", "cls": "", "text": "בחנוכה תשע\"א 2 בחורים השאירו גחל בוער ביער בכרמל, במהלך אותו יום נשבו רוחות חזקות שליבו את האש והתוצאה הייתה אסון. 44 בני אדם נספו ל\"ע, 17,000 איש פונו מבתיהם, 25,000 דונם נשרפו ובהם כמה מיליוני עצים, הנזק הוערך בשווי של 250 מיליון ש\"ח."}, {"id": "shor-umave:15", "tag": "p", "cls": "", "text": "אחרי 5 ימים של מאמץ אדיר, אלפי כבאים מהארץ ומחוץ לארץ, מאות משאיות כיבוי ועשרות מטוסים מכל העולם, הצליחו להשתלט על השריפה."}, {"id": "shor-umave:16", "tag": "p", "cls": "p-strong", "text": "\"אש\" הוא שם של נזק שקורה כי המזיק הדליק אש ובגלל הרוח היא התפשטה גם לחצר של אחרים ושרפה רכוש."}, {"id": "shor-umave:17", "tag": "h2", "cls": "", "text": "החומרה שיש במזיקים"}, {"id": "shor-umave:18", "tag": "h3", "cls": "", "text": "אכלה להנאתה"}, {"id": "shor-umave:19", "tag": "p", "cls": "p-light", "text": "בעלי חיים עסוקים באכילה לאורך רוב היום, פרה אוכלת לפחות 12 שעות ביממה, כל פעם קצת, חלק מהזמן היא אוכלת אוכל חדש ובשאר הזמן מעלה גרה ולועסת את האוכל הקיים. במשך היום זה מגיע לפחות 50 קילו. באמת פרה. בעלי חיים אוהבים ליהנות ועדיף שזה יהיה כל היום."}, {"id": "shor-umave:20", "tag": "p", "cls": "p-strong", "text": "שור שמזיק ב\"שן\", נהנה להזיק, קשה לשמור עליו בגלל זה, הבעלים פושע אם הוא מחזיק שור שהוא לא מסוגל להשתלט עליו וחייב."}, {"id": "shor-umave:21", "tag": "p", "cls": "p-strong", "text": "בלשון הגמרא: \"אכלה להנאתה\"."}, {"id": "shor-umave:22", "tag": "h3", "cls": "", "text": "הזיקה מצוי"}, {"id": "shor-umave:23", "tag": "p", "cls": "p-strong", "text": "הגמרא אומרת שאצל בעל חיים הנזק הכי נפוץ הוא רגל, כי הוא הולך הרבה, יותר משאר הפעולות שהוא עושה ויכולות להזיק, קשה לשמור עליו בגלל זה, הבעלים פושע אם הוא מחזיק שור שהוא לא מסוגל להשתלט עליו וחייב."}, {"id": "shor-umave:24", "tag": "p", "cls": "p-strong", "text": "בלשון הגמרא: \"הזיקה מצוי\" ו\"הזיקה בדרך הילוכה\"."}, {"id": "shor-umave:25", "tag": "h3", "cls": "", "text": "יש בהם רוח חיים"}, {"id": "shor-umave:26", "tag": "p", "cls": "p-strong", "text": "אש לא יכולה להתפשט ולהזיק במקומות חדשים בלי הרוח, לכן המזיק יכול לטעון שהוא לא חשב שתגיע הרוח והאש תתפשט ותזיק, אבל בעל חי לא צריך אחרים שיעזרו לו להזיק הוא מחליט לבד ללכת ולהזיק באכילה, או בהליכה, לכן הבעלים היה אמור להבין שיכול להיות כאן נזק. בלשון הגמרא: \"יש בהם רוח חיים\"."}, {"id": "shor-umave:27", "tag": "h3", "cls": "", "text": "דרכם לילך ולהזיק"}, {"id": "shor-umave:28", "tag": "p", "cls": "p-strong", "text": "בור לא עושה ביקורי בית כדי להזיק, הוא תמיד נמצא באותו מקום ומחכה שהניזק יגיע אליו וייפול בו, אבל שור ואש הולכים בעצמם אל הניזק, לכן הבעלים היה אמור להבין שיכול להיות כאן נזק. בלשון הגמרא: \"דרכם לילך ולהזיק\"."}, {"id": "shor-umave:29", "tag": "h3", "cls": "", "text": "דרכם להזיק ושמירתן עליך"}, {"id": "shor-umave:30", "tag": "p", "cls": "p-strong", "text": "בעל חי אוכל, ישן ונושם, זה חלק מהתכונות שלו. כך גם חלק מהתכונות שלו זה שהוא לא מבין אם אוכל מרכוש של מישהו אחר, או דורך ושובר תוך כדי הליכה. חלק מהתכונות של אש זה שהיא מתפשטת ושל בור פתוח, זה שיש בו אויר ואפשר ליפול בו."}, {"id": "shor-umave:31", "tag": "p", "cls": "p-strong", "text": "לא מפתיע שקורה כאן נזק ולכן הבעלים היה אמור להבין שהגיוני שזה יזיק. בלשון הגמרא: \"דרכם להזיק ושמירתן עליך\", דרכם להזיק ומוטל על הבעלים לשמור עליהם."}, {"id": "shor-umave:32", "tag": "h3", "cls": "", "text": "לסיכום"}, {"id": "shor-umave:33", "tag": "p", "cls": "p-strong", "text": "המזיקים שנכתבו בתורה שונים אחד מהשני, לכל אחד יש סיבה שונה מדוע דווקא הוא יכול להזיק, מדוע הבעלים היה אמור להבין שצריך לשמור שלא יהיה כאן נזק. מלבד זה יש למזיקים גם תכונות משותפות שבגללם הם יכולים להזיק."}, {"id": "shor-umave:34", "tag": "h3", "cls": "", "text": "שור ומבעה"}, {"id": "shor-umave:35", "tag": "p", "cls": "p-strong", "text": "לשיטת שמואל: שור: רגל, מבעה: שן."}]}, "lo-hari-hashor": {"title": "לא הרי השור כהרי המבעה", "items": [{"id": "lo-hari-hashor:0", "tag": "h1", "cls": "lesson-title", "text": "לא הרי השור כהרי המבעה"}, {"id": "lo-hari-hashor:1", "tag": "h3", "cls": "", "text": "העיקרון מובן"}, {"id": "lo-hari-hashor:2", "tag": "p", "cls": "p-light", "text": "אדם ניסה לשדוד בנק ונתפס. התברר שהוא איים על הבנקאי עם רובה מים שנראה ממש כמו הדבר האמיתי. הוא גם טען במשפט שהוא זכאי, כי כתוב בחוק שאסור לאיים על אדם אחר עם נשק, רובה מים פחות מסוכן ואין הוכחה שגם הוא אסור."}, {"id": "lo-hari-hashor:3", "tag": "p", "cls": "p-light", "text": "השופט לא התרשם ופסק שבאמת אין התייחסות בחוק למקרה הזה ואין לנו הוכחה שגם רובה מים אסור, אבל המקרה הזה דומה בדיוק לשימוש בנשק אמיתי, כי הבנקאי הרי חשב שמדובר באיום אמיתי וגם זה אסור באותה מידה."}, {"id": "lo-hari-hashor:4", "tag": "p", "cls": "p-strong", "text": "התורה מלמדת על מקרים שהמזיק חייב בהם. אין צורך לכתוב את כל האפשרויות שיש בעולם להזיק, מספיק להבין את העיקרון וממנו נלמד שגם מזיקים נוספים חייבים. אבל נזק קטן יותר צריך לכתוב שחייב, כי אולי חייב רק במקרה חמור."}, {"id": "lo-hari-hashor:5", "tag": "h3", "cls": "", "text": "על איזה מזיק קשה יותר לשמור?"}, {"id": "lo-hari-hashor:6", "tag": "p", "cls": "p-strong", "text": "המזיקים שנכתבו בתורה שונים אחד מהשני, לכל אחד יש סיבה שונה מדוע דווקא הוא יכול להזיק, מדוע הבעלים היה אמור להבין שצריך לשמור שלא יהיה כאן נזק. מלבד זה יש למזיקים גם תכונות משותפות שבגללם הם יכולים להזיק."}, {"id": "lo-hari-hashor:7", "tag": "p", "cls": "p-strong", "text": "מה קשה יותר קור, או חום? רעב, או צמא? קושי להירדם, או קושי להתעורר? לא בכל דבר אפשר להחליט מה קשה יותר, יש כאלו שמעדיפים כך ויש כאלו שמעדיפים אחרת."}, {"id": "lo-hari-hashor:8", "tag": "p", "cls": "p-strong", "text": "אי אפשר להחליט על איזה מזיק קשה יותר לשמור, האם על בעל חי שמזיק להנאתו, או על בעל חי שהזיקו מצוי, האם על אלו שיש בהם רוח חיים, או על אלו שדרכם לילך ולהזיק, או שאולי הם דווקא קשים באותה מידה. הם שונים אחד מהשני ובכל אחד מהם יש סיבה אחרת לרצון של הבהמה להזיק."}, {"id": "lo-hari-hashor:9", "tag": "p", "cls": "p-strong", "text": "לכן אי אפשר לדעת איזה מזיק קל יותר ואיזה חמור יותר."}, {"id": "lo-hari-hashor:10", "tag": "p", "cls": "p-strong", "text": "ובלשון הגמרא: \"לא הרי השור (רגל) כהרי המבעה (שן)\": לא דומה סיבת הנזק ברגל לסיבת הנזק בשן ואולי ברגל קשה יותר לשמור ו\"לא הרי המבעה (שן) כהרי השור (רגל)\": לא דומה סיבת הנזק בשן לסיבת הנזק ברגל ואולי בשן קשה יותר לשמור."}, {"id": "lo-hari-hashor:11", "tag": "h3", "cls": "", "text": "צריך לכתוב את כל המזיקים"}, {"id": "lo-hari-hashor:12", "tag": "p", "cls": "p-strong", "text": "בכל אחד מהמזיקים יש היגיון להגיד שדווקא בו הבעלים פושע במיוחד, יותר מבשאר המזיקים, כי דווקא בו הוא היה חייב להבין במיוחד שהולך להיות כאן נזק."}, {"id": "lo-hari-hashor:13", "tag": "p", "cls": "p-strong", "text": "לכן התורה צריכה לכתוב את כל המזיקים האלו ואין אפשרות לכתוב חלק ונלמד מהם שהשאר אסורים, כי אולי אלו שלא כתובים קלים יותר ופטורים."}]}, "gabei-shabbat-tanan": {"title": "גבי שבת תנן", "items": [{"id": "gabei-shabbat-tanan:0", "tag": "h1", "cls": "lesson-title", "text": "גבי שבת תנן"}, {"id": "gabei-shabbat-tanan:1", "tag": "h3", "cls": "", "text": "ארבעים חסר אחת"}, {"id": "gabei-shabbat-tanan:2", "tag": "p", "cls": "p-light", "text": "במשכן היו 39 מלאכות חשובות שנצרכו לצורך עבודת המשכן, כל המלאכות האלו שהיו במשכן אסורות בשבת. אחת מהן הייתה כותב אותיות."}, {"id": "gabei-shabbat-tanan:3", "tag": "p", "cls": "p-light", "text": "יש מלאכות נוספות שהיו במשכן, אבל לא היו חשובות. המלאכות האלו דומות למלאכות החשובות שהיו במשכן, לדוגמה: אדם שמצייר ציור, זה דומה למלאכת כותב. גם הם אסורות בשבת."}, {"id": "gabei-shabbat-tanan:4", "tag": "h3", "cls": "", "text": "אבות ותולדות"}, {"id": "gabei-shabbat-tanan:5", "tag": "p", "cls": "p-light", "text": "הגאון הרב יוסף שלום אלישיב, היה בן יחיד להוריו. הוא נפטר בשנת תשע\"ב, בגיל 102. באותו זמן היו לו בערך 1400 צאצאים, בשישה דורות - ילדים, נכדים, נינים, בני נינים ונכדי נינים. בממוצע נולד לו צאצא חדש בכל יומיים."}, {"id": "gabei-shabbat-tanan:6", "tag": "p", "cls": "p-strong", "text": "האבא הוא המקור של כל המשפחה וכל הצאצאים שמגיעים ממנו הם התולדות."}, {"id": "gabei-shabbat-tanan:7", "tag": "p", "cls": "p-strong", "text": "כך גם בדיני שבת, \"אבות מלאכות\": הם המקור של איסורי שבת – המלאכות שהיו חשובות במשכן. \"תולדות\": הם אלו שדומים למלאכות שהיו חשובות במשכן."}, {"id": "gabei-shabbat-tanan:8", "tag": "p", "cls": "p-strong", "text": "מסופר שרבי יוחנן וריש לקיש, לאחר לימוד משותף של שלוש וחצי שנים, מצאו 39 תולדות לכל אחד מהאבות."}, {"id": "gabei-shabbat-tanan:9", "tag": "h3", "cls": "", "text": "כרת"}, {"id": "gabei-shabbat-tanan:10", "tag": "p", "cls": "p-strong", "text": "יש עבירות חמורות שאדם עושה בכוונה, אבל בית דין לא יכול לחייב אותו את העונש שמגיע למי שעשה במזיד, כי לא יודעים שעשה את העבירה, או שלא יודעים אם עשה אותה בכוונה או בטעות. התורה מלמדת על 36 עבירות כאלו שהקב\"ה בוחן כליות ולב מעניש עליהם."}, {"id": "gabei-shabbat-tanan:11", "tag": "p", "cls": "p-strong", "text": "העונש הזה נקרא \"כרת\" – אדם כזה ילך מהעולם הזה עד גיל 60 ולא יזכה לעולם הבא. הגמרא מספרת שרב יוסף עשה סעודה כשהגיע לגיל הזה, כי שמח שהוא לא חייב כרת. מקבלים את העונש הזה רק על עבירות שנעשו לאחר גיל 20."}, {"id": "gabei-shabbat-tanan:12", "tag": "h3", "cls": "", "text": "הדין"}, {"id": "gabei-shabbat-tanan:13", "tag": "p", "cls": "p-light", "text": "הַמְּקוֹשֵׁשׁ - כשבני ישראל היו במדבר, היה אדם שאסף עצים בשבת, משה לא ידע איך לנהוג במקרה הזה, שאל את הקב\"ה וקיבל תשובה שדינו בסקילה."}, {"id": "gabei-shabbat-tanan:14", "tag": "p", "cls": "p-strong", "text": "שוגג: הוא אדם שעבר עבירה בטעות, הוא לא ידע שהיא אסורה. מזיד: הוא אדם שעבר עבירה בכוונה. התראה: כדי לדעת בביטחון שהוא באמת עשה את העבירה במזיד, צריך שאנשים יתנו לו התראה ויגידו לו שזה אסור."}, {"id": "gabei-shabbat-tanan:15", "tag": "p", "cls": "p-strong", "text": "אדם שעשה מלאכה אסורה בשבת, בשוגג: חייב חטאת ובמזיד: חייב סקילה. אם עשה את המלאכה במזיד, אבל אין עדים והתראה, רק הקב\"ה יודע שזה היה במזיד וחייב כרת."}, {"id": "gabei-shabbat-tanan:16", "tag": "p", "cls": "p-strong", "text": "אדם שעשה מלאכה אסורה בשבת תמיד חייב אותו דבר, אין הבדל אם עבר על אב מלאכה, או על תולדה."}, {"id": "gabei-shabbat-tanan:17", "tag": "h3", "cls": "", "text": "תולדותיהן כיוצא בהן"}, {"id": "gabei-shabbat-tanan:18", "tag": "p", "cls": "p-strong", "text": "אנחנו רואים שגם בדיני שבת יש אבות ותולדות, כמו אצלנו בדיני נזיקין. לתולדות המלאכות שאסורות בשבת יש דין דומה כמו לאבות שלהם ולא דין שונה."}]}, "umai-ika": {"title": "ומאי איכא בין אב לתולדה", "items": [{"id": "umai-ika:0", "tag": "h1", "cls": "lesson-title", "text": "ומאי איכא בין אב לתולדה"}, {"id": "umai-ika:1", "tag": "p", "cls": "p-strong", "text": "אדם שעשה מלאכה אסורה בשבת: בשוגג, חייב חטאת ובמזיד, אם לא היו עדים והתראה, נענש במיתה בידי שמים ואם היו עדים והתראה, נענש בסקילה."}, {"id": "umai-ika:2", "tag": "h3", "cls": "", "text": "מזיד"}, {"id": "umai-ika:3", "tag": "p", "cls": "p-strong", "text": "עבר במזיד על איסורי שבת הרבה פעמים ח\"ו, תמיד הוא יכול לקבל רק עונש אחד, כי הרי אי אפשר לקבל סקילה, או מיתה בידי שמים כמה פעמים."}, {"id": "umai-ika:4", "tag": "h3", "cls": "", "text": "עבירה אחת"}, {"id": "umai-ika:5", "tag": "p", "cls": "p-strong", "text": "אדם שעובר עבירה בשוגג, עושה אותה מחוסר ידע, אם היה יודע שזה אסור, הוא לא היה עושה אותה. אפילו אם הוא עשה אותה הרבה פעמים, כל המעשים האלו מגיעים מטעות אחת, המחשבה שזה מותר. לכן הוא לא פושע גדול יותר מאדם שעשה אותה בשוגג פעם אחת, כי חשב שזה מותר."}, {"id": "umai-ika:6", "tag": "h3", "cls": "", "text": "קרבן חטאת"}, {"id": "umai-ika:7", "tag": "p", "cls": "p-light", "text": "לפני 200 שנה מלך רוסיה, הצאר ניקולאי, החליט לקחת בכוח ילדים יהודיים ולגייס אותם לצבא הרוסי, שם הם יקבלו בכוח חינוך לא יהודי. החיילים האלו היו נקראים \"קנטוניסים\". במשך השנים גויסו בכפייה 70,000 ילדים בגיל 12 וגם פחות מכך, לשירות של 31 שנים."}, {"id": "umai-ika:8", "tag": "p", "cls": "p-light", "text": "היו שם הרבה מאוד סיפורים מרגשים על חיילים שהמשיכו לשמור מצוות במסירות נפש. בסיום השירות הצבאי, הם קיבלו אישור להתיישב באזורים שבהם הם שירתו המון שנים. כך קמו קהילות קטנות של קנטוניסטים, בפינלנד, בסיביר ובעוד מקומות נידחים."}, {"id": "umai-ika:9", "tag": "p", "cls": "p-light", "text": "היהודים האלו היו בעלי רגש חם מאוד ליהדות, אמונה תמימה ומסירות נפש, אבל אחרי שנים רבות כל כך בין הגויים, הם לא הכירו את כל הפרטים הנדרשים לקיום מצוות כהלכתם."}, {"id": "umai-ika:10", "tag": "p", "cls": "p-strong", "text": "אדם לא ידע שבשבת אסור להוציא מהסלט רק את הירק שהוא לא אוהב ועשה את זה בשוגג כל שבת במשך שנים רבות, האם בזמן שבית המקדש ייבנה הוא יצטרך להביא מאות קורבנות חטאת?"}, {"id": "umai-ika:11", "tag": "p", "cls": "p-strong", "text": "עבר רק על אבות, או רק על תולדות: יצטרך להביא קרבן חטאת אחת על כל סוג של אב או תולדה שעבר, כי אפילו שעבר על בורר הרבה פעמים, הכול נובע מטעות אחת שזה מותר."}, {"id": "umai-ika:12", "tag": "p", "cls": "p-strong", "text": "עבר על אב ותולדה שלו: כמו כותב ומצייר, מחלוקת: לפי תנא קמא: אב ותולדה זה אותה מלאכה, כמו אדם שעבר על אותו אב כמה פעמים ולכן מספיק קרבן חטאת אחד על שניהם ולפי רבי אליעזר: אב ותולדה אלו מלאכות שונות, כמו אדם שעבר על כמה אבות שונים ולכן חייב חטאת אחת על האב וחטאת נוספת על התולדה."}, {"id": "umai-ika:13", "tag": "p", "cls": "p-strong", "text": "לפי תנא קמא: יש רווח גדול מכך שמצייר הוא תולדה של כותב ולא עוד אב מלאכה, כך חייב רק חטאת אחת."}, {"id": "umai-ika:14", "tag": "p", "cls": "p-strong", "text": "לפי רבי אליעזר: אין רווח מכך שמצייר הוא תולדה של כותב, כי הוא כמו עוד אב מלאכה וחייב עוד חטאת."}, {"id": "umai-ika:15", "tag": "h3", "cls": "", "text": "העלם אחד"}, {"id": "umai-ika:16", "tag": "p", "cls": "p-strong", "text": "אדם שמר מצוות לאורך שנים רבות, אבל הוא לא ידע שאסור להוציא מהסלט רק את הירק שהוא לא אוהב, רק אחרי שנים התברר לו ומאז הוא זוכר ומקפיד על זה."}, {"id": "umai-ika:17", "tag": "p", "cls": "p-strong", "text": "המידע הזה נעלם ממנו פעם אחת בלבד, כי אחרי שנודע לו הוא כבר זוכר את זה תמיד. בלשון הגמרא זה נקרא \"העלם אחד\" – כי המידע הזה נעלם ממנו רק פעם אחת. אבל אם שכח שוב פעם את האיסור הזה, המידע הזה כבר נעלם ממנו פעמיים, פעם אחת לפני שהוא למד אותו ופעם שניה אחרי שהוא למד אותו."}, {"id": "umai-ika:18", "tag": "h3", "cls": "", "text": "משמעות"}, {"id": "umai-ika:19", "tag": "p", "cls": "p-strong", "text": "מה המשמעות לכך שמלאכה אחת נקראת בשם אב ומלאכה אחרת נקראת בשם תולדה של האב הזה, מדוע לא לקרוא להם באותו שם, מלאכות שאסורות בשבת?"}, {"id": "umai-ika:20", "tag": "p", "cls": "p-strong", "text": "לפי תנא קמא: יש משמעות הלכתית, כי אם עבר על אב ותולדה שלו מביא רק חטאת אחת."}, {"id": "umai-ika:21", "tag": "p", "cls": "p-strong", "text": "לפי רבי אליעזר: אין משמעות הלכתית, ונקרא אב רק בגלל שהיה מלאכה חשובה במשכן."}]}, "gabei-tumaot-tanan": {"title": "גבי טומאות תנן", "items": [{"id": "gabei-tumaot-tanan:0", "tag": "h1", "cls": "lesson-title", "text": "גבי טומאות תנן"}, {"id": "gabei-tumaot-tanan:1", "tag": "h3", "cls": "", "text": "שמונה שרצים"}, {"id": "gabei-tumaot-tanan:2", "tag": "h3", "cls": "", "text": "טומאה וטהרה"}, {"id": "gabei-tumaot-tanan:3", "tag": "p", "cls": "p-strong", "text": "אדם טמא, אסור להיכנס לבית המקדש ולאכול תרומה ומהקורבנות של בית המקדש."}, {"id": "gabei-tumaot-tanan:4", "tag": "h3", "cls": "", "text": "מקור הטומאה"}, {"id": "gabei-tumaot-tanan:5", "tag": "p", "cls": "p-strong", "text": "כמה מהם:"}, {"id": "gabei-tumaot-tanan:6", "tag": "p", "cls": "p-strong", "text": "אדם מת: יהודי, או גוי."}, {"id": "gabei-tumaot-tanan:7", "tag": "p", "cls": "p-strong", "text": "שרץ: אחד מ8 שרצים שמתו: \"וְזֶה לָכֶם הַטָּמֵא בַּשֶּׁרֶץ הַשֹּׁרֵץ עַל־הָאָרֶץ הַחֹלֶד וְהָעַכְבָּר וְהַצָּב לְמִינֵהוּ וְהָאֲנָקָה וְהַכֹּחַ וְהַלְּטָאָה וְהַחֹמֶט וְהַתִּנְשָׁמֶת\"."}, {"id": "gabei-tumaot-tanan:8", "tag": "h3", "cls": "", "text": "מקבלים טומאה"}, {"id": "gabei-tumaot-tanan:9", "tag": "p", "cls": "p-strong", "text": "אדם: יהודי."}, {"id": "gabei-tumaot-tanan:10", "tag": "p", "cls": "p-light", "text": "כלים: אחרי שבני ישראל עלו לרגל, הכוהנים היו מטהרים את כלי המקדש, מחשש שנגע בהם אדם טמא."}, {"id": "gabei-tumaot-tanan:11", "tag": "p", "cls": "p-strong", "text": "כל הכלים מקבלים טומאה, חוץ מכלי אבן."}, {"id": "gabei-tumaot-tanan:12", "tag": "p", "cls": "p-light", "text": "אוכל: בחפירות בעיר העתיקה בירושלים, מצאו כלי אוכל שעשויים מאבן. בזמן שבית המקדש היה קיים אנשים נזהרו מאוד מטומאה ולכן אכלו בכלים שלא מטמאים את האוכל."}, {"id": "gabei-tumaot-tanan:13", "tag": "p", "cls": "p-light", "text": "אוכל מקבל טומאה רק אם נשטף במים. בליל הסדר אנחנו טובלים את הכרפס במי מלח. זאת הסיבה שלפני זה נוטלים ידיים, לטהר אותם שלא יטמאו את האוכל הרטוב."}, {"id": "gabei-tumaot-tanan:14", "tag": "p", "cls": "p-strong", "text": "משקה: שבעה סוגים של משקים, ראשי תיבות: י\"ד שח\"ט ד\"ם: יין, דבש דבורים, שמן, חלב, טל, דם ומים."}, {"id": "gabei-tumaot-tanan:15", "tag": "h3", "cls": "", "text": "אבות ותולדות הטומאה"}, {"id": "gabei-tumaot-tanan:16", "tag": "p", "cls": "p-strong", "text": "בשנת תש״פ התפרצה לחיינו מגיפת הקורונה. לפחות 18 מיליון בני אדם מתו ממנה. זה היה וירוס שיוצר במעבדה בסין ומשם נדבקו ממנו בכל העולם."}, {"id": "gabei-tumaot-tanan:17", "tag": "p", "cls": "p-strong", "text": "הוירוס הוא אב המחלה - המקור שלה והדורות הבאים הם התולדות שהגיעו ממנה."}, {"id": "gabei-tumaot-tanan:18", "tag": "p", "cls": "p-strong", "text": "כך גם בדיני הטומאה: אב הטומאה: הוא האדם המת והשרץ שהם המקור של הטומאה. תולדות הטומאה: הם אדם חי וכלים שהיו טהורים ונטמאו."}, {"id": "gabei-tumaot-tanan:19", "tag": "h3", "cls": "", "text": "מטמאים"}, {"id": "gabei-tumaot-tanan:20", "tag": "p", "cls": "p-strong", "text": "כמו וירוס הקורונה שמדביק אחרים, אדם מת ושרץ מטמאים וגם דברים שנטמאו מתחילים לטמא אחרים."}, {"id": "gabei-tumaot-tanan:21", "tag": "h3", "cls": "", "text": "שרשרת הדורות"}, {"id": "gabei-tumaot-tanan:22", "tag": "p", "cls": "p-strong", "text": "וירוס הקורונה יוצר במעבדה בסין. חוקר מקומי נדבק שם, הוא הלך לחנות והדביק את כל הקונים. אחד מהם עלה לאוטובוס, הדביק את כולו ובין השאר גם אדם שהיה בדרך לשדה התעופה. שם הוא הדביק אנשים שטסו למדינות שונות. משם המשיכה שרשרת ההדבקה למיליארדי אנשים בכל העולם."}, {"id": "gabei-tumaot-tanan:23", "tag": "p", "cls": "p-strong", "text": "שימו לב לשרשרת ההתפשטות של המחלה. כל אחד שנדבק, מדביק את הבא אחריו:"}, {"id": "gabei-tumaot-tanan:24", "tag": "p", "cls": "p-strong", "text": "הווירוס - המקור של המחלה."}, {"id": "gabei-tumaot-tanan:25", "tag": "p", "cls": "p-strong", "text": "החוקר – במעבדה, נדבק מהווירוס. הראשון בשרשרת ההדבקה."}, {"id": "gabei-tumaot-tanan:26", "tag": "p", "cls": "p-strong", "text": "הקונה - בחנות בסין, נדבק מהחוקר. השני בשרשרת ההדבקה."}, {"id": "gabei-tumaot-tanan:27", "tag": "p", "cls": "p-strong", "text": "הנוסע - בטיסה נדבק מהמוכר. השלישי בשרשרת ההדבקה."}, {"id": "gabei-tumaot-tanan:28", "tag": "p", "cls": "p-strong", "text": "כך גם בדיני טומאה:"}, {"id": "gabei-tumaot-tanan:29", "tag": "p", "cls": "p-strong", "text": "אדם נפטר בשיבה טובה בבית רפואה ונלקח לקבורה. הגיע חולה אחר לבית הרפואה, שכב במיטה שלו, הבריא, חזר הביתה והלך לאכול."}, {"id": "gabei-tumaot-tanan:30", "tag": "p", "cls": "p-strong", "text": "המת והמיטה – אב הטומאה."}, {"id": "gabei-tumaot-tanan:31", "tag": "p", "cls": "p-strong", "text": "החולה – הראשון בשרשרת ההדבקה."}, {"id": "gabei-tumaot-tanan:32", "tag": "p", "cls": "p-strong", "text": "הכלי – השני בשרשרת ההדבקה."}, {"id": "gabei-tumaot-tanan:33", "tag": "p", "cls": "p-strong", "text": "כל דבר שהיה טהור וקיבל טומאה, כמו אדם, כלים ואוכל, נגע בדבר טמא, הוא נהיה דור נוסף / בדרגה אחת פחות מהדבר הטמא. לדוגמה: אם נטמא מראשון לטומאה, הם טמאים והופכים להיות שניים לטומאה וכך הלאה."}, {"id": "gabei-tumaot-tanan:34", "tag": "h3", "cls": "", "text": "ירידת הדורות"}, {"id": "gabei-tumaot-tanan:35", "tag": "p", "cls": "p-strong", "text": "הוירוס הראשון היה הכי חזק וקשה, אבל ככל שהוא עובר מאדם לאדם הוא נחלש."}, {"id": "gabei-tumaot-tanan:36", "tag": "p", "cls": "p-strong", "text": "בהתחלה הוא היה חזק ופגע אפילו בצעירים, בריאים וחזקים ואחר כך רק בחלשים וחולים."}, {"id": "gabei-tumaot-tanan:37", "tag": "p", "cls": "p-strong", "text": "היום יש אנשים שחולים בקורונה והם אפילו לא יודעים."}, {"id": "gabei-tumaot-tanan:38", "tag": "p", "cls": "p-strong", "text": "מחלה חזקה פוגעת גם בחזקים, מחלה חלשה פוגעת רק בחלשים. ככל שהמחלה עוברת מאדם לאדם היא נחלשת."}, {"id": "gabei-tumaot-tanan:39", "tag": "p", "cls": "p-strong", "text": "ככל שהטומאה היא בדור רחוק יותר מאב הטומאה היא בדרגה נמוכה יותר ומטמאת פחות דברים."}, {"id": "gabei-tumaot-tanan:40", "tag": "p", "cls": "p-strong", "text": "ככל שהטומאה בדרגה נמוכה יותר, היא מטמאת פחות דברים."}, {"id": "gabei-tumaot-tanan:41", "tag": "h3", "cls": "", "text": "אבות ותולדות"}, {"id": "gabei-tumaot-tanan:42", "tag": "p", "cls": "p-strong", "text": "בדיני טומאה וטהרה יש אבות ותולדות. הדבר המטמא הוא אב והדבר שנטמא הוא תולדה של הטומאה. לתולדה יש דין שונה מהאב שלו. כי אב מטמא גם אדם וכלים ותולדה לא מטמא אדם וכלים."}]}}
 ;
-    var DRAFT_KEY = "avot-admin-drafts-v1";
-
     (function () {
-      var drafts = {};
-      try {
-        drafts = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
-      } catch (e) { drafts = {}; }
+      var overrides = {}; // { lessonId: { itemId: text, ... } }
+      LESSON_ORDER.forEach(function (lid) { overrides[lid] = {}; });
 
       var currentLesson = LESSON_ORDER[0];
+      var authGateEl = document.getElementById("auth-gate");
+      var adminMainEl = document.getElementById("admin-main");
       var tabsEl = document.getElementById("tabs");
       var contentEl = document.getElementById("content");
       var dirtyCountEl = document.getElementById("dirty-count");
-      var btnExport = document.getElementById("btn-export");
-      var btnResetAll = document.getElementById("btn-reset-all");
-      var btnDownload = document.getElementById("btn-download");
-      var exportPanel = document.getElementById("export-panel");
-      var exportText = document.getElementById("export-text");
-      var exportTitle = document.getElementById("export-title");
+      var btnLogout = document.getElementById("btn-logout");
+      var pendingTimers = {};
 
       function currentText(item) {
-        return Object.prototype.hasOwnProperty.call(drafts, item.id) ? drafts[item.id] : item.text;
+        var o = overrides[currentLesson];
+        return Object.prototype.hasOwnProperty.call(o, item.id) ? o[item.id] : item.text;
       }
 
       function isDirty(item) {
-        return Object.prototype.hasOwnProperty.call(drafts, item.id) && drafts[item.id] !== item.text;
-      }
-
-      function saveDrafts() {
-        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts)); } catch (e) { /* best effort */ }
-      }
-
-      function countDirty() {
-        var n = 0;
-        LESSON_ORDER.forEach(function (lid) {
-          LESSONS[lid].items.forEach(function (it) { if (isDirty(it)) n++; });
-        });
-        return n;
+        var o = overrides[currentLesson];
+        return Object.prototype.hasOwnProperty.call(o, item.id) && o[item.id] !== item.text;
       }
 
       function tagLabel(tag, cls) {
@@ -202,15 +191,12 @@
         return "טקסט";
       }
 
-      function updateToolbar() {
-        var n = countDirty();
-        dirtyCountEl.innerHTML = n === 0 ? "אין שינויים עדיין" : "<b>" + n + "</b> שדות נערכו";
-        btnExport.disabled = n === 0;
-      }
-
       function lessonDirtyCount(lid) {
         var n = 0;
-        LESSONS[lid].items.forEach(function (it) { if (isDirty(it)) n++; });
+        var o = overrides[lid];
+        LESSONS[lid].items.forEach(function (it) {
+          if (Object.prototype.hasOwnProperty.call(o, it.id) && o[it.id] !== it.text) n++;
+        });
         return n;
       }
 
@@ -237,9 +223,29 @@
         ta.style.height = ta.scrollHeight + "px";
       }
 
+      function setStatus(statusEl, state, label) {
+        statusEl.className = "save-status" + (state ? " status-" + state : "");
+        statusEl.textContent = label || "";
+      }
+
+      function saveField(lessonId, item, value, statusEl) {
+        setStatus(statusEl, "saving", "שומר…");
+        var payload = {};
+        payload[item.id] = value === item.text ? deleteField() : value;
+        payload.updatedAt = new Date().toISOString();
+        setDoc(doc(getDb(), "content", lessonId), payload, { merge: true })
+          .then(function () {
+            setStatus(statusEl, "saved", "נשמר באתר ✓");
+          })
+          .catch(function () {
+            setStatus(statusEl, "error", "שגיאה בשמירה");
+          });
+      }
+
       function renderContent() {
         contentEl.innerHTML = "";
         var lesson = LESSONS[currentLesson];
+        var lessonId = currentLesson;
         lesson.items.forEach(function (item) {
           var isHeading = item.tag === "h1" || item.tag === "h2" || item.tag === "h3";
           var wrap = document.createElement("div");
@@ -254,8 +260,11 @@
           resetBtn.type = "button";
           resetBtn.className = "reset-link";
           resetBtn.textContent = "איפוס לטקסט המקורי";
+          var statusEl = document.createElement("span");
+          statusEl.className = "save-status";
           labelRow.appendChild(badge);
           labelRow.appendChild(resetBtn);
+          labelRow.appendChild(statusEl);
           wrap.appendChild(labelRow);
 
           var control;
@@ -270,25 +279,25 @@
 
           control.addEventListener("input", function () {
             if (!isHeading) autoGrow(control);
-            if (control.value === item.text) {
-              delete drafts[item.id];
-            } else {
-              drafts[item.id] = control.value;
-            }
+            overrides[lessonId][item.id] = control.value;
             wrap.classList.toggle("edited", isDirty(item));
-            saveDrafts();
-            updateToolbar();
             renderTabs();
+
+            clearTimeout(pendingTimers[item.id]);
+            setStatus(statusEl, null, "");
+            pendingTimers[item.id] = setTimeout(function () {
+              saveField(lessonId, item, control.value, statusEl);
+            }, 600);
           });
 
           resetBtn.addEventListener("click", function () {
-            delete drafts[item.id];
+            clearTimeout(pendingTimers[item.id]);
+            overrides[lessonId][item.id] = item.text;
             control.value = item.text;
             if (!isHeading) autoGrow(control);
             wrap.classList.remove("edited");
-            saveDrafts();
-            updateToolbar();
             renderTabs();
+            saveField(lessonId, item, item.text, statusEl);
           });
 
           wrap.appendChild(control);
@@ -297,78 +306,40 @@
         });
       }
 
-      function buildExportPayload() {
-        var changes = [];
-        LESSON_ORDER.forEach(function (lid) {
-          LESSONS[lid].items.forEach(function (item) {
-            if (isDirty(item)) {
-              changes.push({
-                lesson: lid,
-                id: item.id,
-                tag: item.tag,
-                cls: item.cls,
-                original: item.text,
-                edited: drafts[item.id]
-              });
-            }
-          });
+      function loadOverrides() {
+        var loads = LESSON_ORDER.map(function (lid) {
+          return getDoc(doc(getDb(), "content", lid)).then(function (snap) {
+            if (!snap.exists()) return;
+            var data = snap.data();
+            Object.keys(data).forEach(function (cid) {
+              if (cid === "updatedAt") return;
+              overrides[lid][cid] = data[cid];
+            });
+          }).catch(function () { /* best effort */ });
         });
-        return { exportedAt: new Date().toISOString(), changes: changes };
+        return Promise.all(loads);
       }
 
-      btnExport.addEventListener("click", function () {
-        var payload = buildExportPayload();
-        var json = JSON.stringify(payload, null, 2);
-        exportText.value = json;
-        exportPanel.hidden = false;
-        exportPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+      btnLogout.addEventListener("click", function () {
+        logoutUser();
+      });
 
-        function markCopyResult(ok) {
-          exportTitle.textContent = ok ? "הועתק ללוח ✓" : "ההעתקה לא הצליחה - סמנו והעתיקו ידנית";
-        }
-
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(json).then(function () {
-            markCopyResult(true);
-          }).catch(function () {
-            markCopyResult(false);
-            exportText.select();
-          });
-        } else {
-          markCopyResult(false);
-          exportText.select();
-        }
-
-        btnDownload.onclick = function () {
-          try {
-            var blob = new Blob([json], { type: "application/json" });
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement("a");
-            a.href = url;
-            a.download = "avot-content-edits.json";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          } catch (e) {
-            exportText.select();
+      if (isReady()) {
+        watchAuthState(function (user) {
+          if (user) {
+            authGateEl.hidden = true;
+            adminMainEl.hidden = false;
+            dirtyCountEl.textContent = user.displayName ? "מחובר/ת: " + user.displayName : "מחובר/ת";
+            loadOverrides().then(function () {
+              renderTabs();
+              renderContent();
+            });
+          } else {
+            authGateEl.hidden = false;
+            adminMainEl.hidden = true;
           }
-        };
-      });
-
-      btnResetAll.addEventListener("click", function () {
-        if (countDirty() === 0) return;
-        drafts = {};
-        saveDrafts();
-        updateToolbar();
-        renderTabs();
-        renderContent();
-        exportPanel.hidden = true;
-      });
-
-      renderTabs();
-      renderContent();
-      updateToolbar();
+        });
+      }
     })();
   </script>
 </body>
