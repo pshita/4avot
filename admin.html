@@ -125,7 +125,7 @@
 
     <div class="howto">
       עורכים כאן חופשי - כל שינוי נשמר אוטומטית בדפדפן שלכם (כטיוטה, לא באתר החי).
-      כשסיימתם, לוחצים על <strong>"ייצוא שינויים"</strong>, מורידים את הקובץ, ומעלים אותו לקלוד בצ'אט
+      כשסיימתם, לוחצים על <strong>"העתקת שינויים"</strong> ומדביקים (Ctrl+V) בהודעה לקלוד בצ'אט
       עם הבקשה לעדכן את האתר.
     </div>
 
@@ -133,7 +133,7 @@
       <span class="dirty-count" id="dirty-count">אין שינויים עדיין</span>
       <div class="toolbar-actions">
         <button type="button" class="btn" id="btn-reset-all">אפס הכל</button>
-        <button type="button" class="btn btn-primary" id="btn-export" disabled>ייצוא שינויים</button>
+        <button type="button" class="btn btn-primary" id="btn-export" disabled>העתקת שינויים</button>
       </div>
     </div>
 
@@ -141,9 +141,9 @@
     <div id="content"></div>
 
     <div class="export-panel" id="export-panel" hidden>
-      <h2>הקובץ מוכן</h2>
-      <p>הורד את הקובץ (כפתור למטה) והעלה אותו לקלוד בצ'אט. אפשר גם להעתיק את הטקסט ישירות אם נוח יותר.</p>
-      <button type="button" class="btn btn-primary" id="btn-download" style="margin-bottom: 10px;">הורדת קובץ JSON</button>
+      <h2 id="export-title">הועתק ללוח ✓</h2>
+      <p>עכשיו הדביקו (Ctrl+V) בהודעה לקלוד בצ'אט. אם ההעתקה לא עבדה, אפשר לסמן את הטקסט למטה ולהעתיק ידנית, או להוריד כקובץ.</p>
+      <button type="button" class="btn" id="btn-download" style="margin-bottom: 10px;">הורדת קובץ JSON (חלופה)</button>
       <textarea id="export-text" readonly></textarea>
     </div>
   </div>
@@ -171,6 +171,7 @@
       var btnDownload = document.getElementById("btn-download");
       var exportPanel = document.getElementById("export-panel");
       var exportText = document.getElementById("export-text");
+      var exportTitle = document.getElementById("export-title");
 
       function currentText(item) {
         return Object.prototype.hasOwnProperty.call(drafts, item.id) ? drafts[item.id] : item.text;
@@ -321,6 +322,22 @@
         exportText.value = json;
         exportPanel.hidden = false;
         exportPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        function markCopyResult(ok) {
+          exportTitle.textContent = ok ? "הועתק ללוח ✓" : "ההעתקה לא הצליחה - סמנו והעתיקו ידנית";
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(json).then(function () {
+            markCopyResult(true);
+          }).catch(function () {
+            markCopyResult(false);
+            exportText.select();
+          });
+        } else {
+          markCopyResult(false);
+          exportText.select();
+        }
 
         btnDownload.onclick = function () {
           try {
