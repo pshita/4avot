@@ -391,10 +391,7 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 }
 .example p { margin: 0 0 8px; color: var(--ink); font-size: .96rem; }
 .example p:last-child { margin-bottom: 0; }
-.p-strong, .p-light, .example p { text-align: right; }
-@media (min-width: 640px) {
-  .p-strong, .p-light, .example p { text-align: justify; }
-}
+.p-strong, .p-light, .example p { text-align: justify; }
 
 /* Media placeholder box: swap for a real <img>/<video> once assets are ready */
 .media-slot {
