@@ -228,10 +228,12 @@
         statusEl.textContent = label || "";
       }
 
-      function saveField(lessonId, item, value, statusEl) {
+      function saveFields(lessonId, entries, statusEl) {
         setStatus(statusEl, "saving", "שומר…");
         var payload = {};
-        payload[item.id] = value === item.text ? deleteField() : value;
+        entries.forEach(function (e) {
+          payload[e.item.id] = e.value === e.item.text ? deleteField() : e.value;
+        });
         payload.updatedAt = new Date().toISOString();
         setDoc(doc(getDb(), "content", lessonId), payload, { merge: true })
           .then(function () {
@@ -242,20 +244,52 @@
           });
       }
 
+      // Consecutive <p> items with no heading between them are grouped into
+      // one editable block, so a whole section's paragraphs can be edited
+      // together in a single textarea (Enter = new paragraph).
+      function buildBlocks(items) {
+        var blocks = [];
+        var i = 0;
+        while (i < items.length) {
+          var item = items[i];
+          var isHeading = item.tag === "h1" || item.tag === "h2" || item.tag === "h3";
+          if (isHeading) {
+            blocks.push([item]);
+            i++;
+            continue;
+          }
+          var group = [item];
+          i++;
+          while (i < items.length && items[i].tag === "p") {
+            group.push(items[i]);
+            i++;
+          }
+          blocks.push(group);
+        }
+        return blocks;
+      }
+
       function renderContent() {
         contentEl.innerHTML = "";
         var lesson = LESSONS[currentLesson];
         var lessonId = currentLesson;
-        lesson.items.forEach(function (item) {
-          var isHeading = item.tag === "h1" || item.tag === "h2" || item.tag === "h3";
+        var blocks = buildBlocks(lesson.items);
+
+        blocks.forEach(function (group) {
+          var isSingle = group.length === 1;
+          var first = group[0];
+          var isHeading = first.tag === "h1" || first.tag === "h2" || first.tag === "h3";
+          var blockKey = group.map(function (it) { return it.id; }).join("+");
+
           var wrap = document.createElement("div");
-          wrap.className = "field f-" + (isHeading ? item.tag : "p") + (item.cls ? " cls-" + item.cls : "") + (isDirty(item) ? " edited" : "");
+          var blockDirty = group.some(isDirty);
+          wrap.className = "field f-" + (isHeading ? first.tag : "p") + (isSingle && first.cls ? " cls-" + first.cls : "") + (blockDirty ? " edited" : "");
 
           var labelRow = document.createElement("div");
           labelRow.className = "field-label";
           var badge = document.createElement("span");
           badge.className = "tag-badge";
-          badge.textContent = tagLabel(item.tag, item.cls);
+          badge.textContent = isSingle ? tagLabel(first.tag, first.cls) : "טקסט (" + group.length + " פסקאות)";
           var resetBtn = document.createElement("button");
           resetBtn.type = "button";
           resetBtn.className = "reset-link";
@@ -275,29 +309,47 @@
             control = document.createElement("textarea");
             control.rows = 1;
           }
-          control.value = currentText(item);
+          control.value = group.map(currentText).join("\n");
+
+          function refreshDirty() {
+            wrap.classList.toggle("edited", group.some(isDirty));
+          }
 
           control.addEventListener("input", function () {
             if (!isHeading) autoGrow(control);
-            overrides[lessonId][item.id] = control.value;
-            wrap.classList.toggle("edited", isDirty(item));
+
+            var lines = control.value.split("\n");
+            group.forEach(function (it, idx) {
+              var isLast = idx === group.length - 1;
+              if (isLast && lines.length > group.length) {
+                // more lines typed than paragraphs: fold the extra lines into the last paragraph
+                overrides[lessonId][it.id] = lines.slice(idx).join("\n");
+              } else {
+                overrides[lessonId][it.id] = lines[idx] !== undefined ? lines[idx] : "";
+              }
+            });
+            refreshDirty();
             renderTabs();
 
-            clearTimeout(pendingTimers[item.id]);
+            clearTimeout(pendingTimers[blockKey]);
             setStatus(statusEl, null, "");
-            pendingTimers[item.id] = setTimeout(function () {
-              saveField(lessonId, item, control.value, statusEl);
+            pendingTimers[blockKey] = setTimeout(function () {
+              var entries = group.map(function (it) {
+                return { item: it, value: currentText(it) };
+              });
+              saveFields(lessonId, entries, statusEl);
             }, 600);
           });
 
           resetBtn.addEventListener("click", function () {
-            clearTimeout(pendingTimers[item.id]);
-            overrides[lessonId][item.id] = item.text;
-            control.value = item.text;
+            clearTimeout(pendingTimers[blockKey]);
+            group.forEach(function (it) { overrides[lessonId][it.id] = it.text; });
+            control.value = group.map(function (it) { return it.text; }).join("\n");
             if (!isHeading) autoGrow(control);
-            wrap.classList.remove("edited");
+            refreshDirty();
             renderTabs();
-            saveField(lessonId, item, item.text, statusEl);
+            var entries = group.map(function (it) { return { item: it, value: it.text }; });
+            saveFields(lessonId, entries, statusEl);
           });
 
           wrap.appendChild(control);
