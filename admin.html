@@ -91,6 +91,17 @@
     .f-p textarea { font-size: .98rem; line-height: 1.6; }
     .f-p.cls-p-strong textarea { font-weight: 600; }
     .f-p.cls-p-light textarea { color: var(--ink-soft); }
+    .cg-styles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .cg-style-row {
+      display: flex; align-items: center; gap: 4px;
+      background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+      padding: 3px 8px; font-size: .74rem; color: var(--ink-soft);
+    }
+    .cg-style-row select {
+      font-family: inherit; font-size: .74rem; border: none; background: transparent;
+      color: var(--ink); cursor: pointer;
+    }
+    .cg-style-row select:focus { outline: none; }
     .save-status {
       font-size: .76rem;
       color: var(--ink-soft);
@@ -339,29 +350,61 @@
       // are edited together in one textarea. Enter = new paragraph; the
       // whole array is saved as one Firestore field, so paragraphs can be
       // freely added or removed, not just re-worded.
+      var STYLE_OPTIONS = [["", "רגיל"], ["p-light", "רקע (בהיר)"], ["p-strong", "מודגש"]];
+
+      function buildStyleSelect(selectedCls) {
+        var select = document.createElement("select");
+        STYLE_OPTIONS.forEach(function (pair) {
+          var opt = document.createElement("option");
+          opt.value = pair[0];
+          opt.textContent = pair[1];
+          if (pair[0] === (selectedCls || "")) opt.selected = true;
+          select.appendChild(opt);
+        });
+        return select;
+      }
+
       function renderGroupField(block, lessonId) {
         var shell = fieldShell();
         var wrap = shell.wrap, badge = shell.badge, resetBtn = shell.resetBtn, statusEl = shell.statusEl;
         wrap.className = "field f-p" + (isDirtyGroup(block) ? " edited" : "");
 
-        var current = currentGroupItems(block);
-        badge.textContent = "טקסט (" + current.length + " פסקאות)";
+        // currentArr is the live working state for this group: kept in sync
+        // with both the textarea (text + paragraph count) and the per-
+        // paragraph style selects below it, so a manually chosen style
+        // survives further text edits instead of being recomputed away.
+        var currentArr = currentGroupItems(block).map(function (p) { return { text: p.text, cls: p.cls || "" }; });
+        badge.textContent = "טקסט (" + currentArr.length + " פסקאות)";
 
         var control = document.createElement("textarea");
         control.rows = 1;
-        control.value = current.map(function (p) { return p.text; }).join("\n");
+        control.value = currentArr.map(function (p) { return p.text; }).join("\n");
 
-        control.addEventListener("input", function () {
-          autoGrow(control);
-          var lines = control.value.split("\n");
-          var newArr = lines.map(function (text, idx) {
-            var cls = idx < block.items.length
-              ? block.items[idx].cls
-              : (block.items.length ? block.items[block.items.length - 1].cls : "");
-            return { text: text, cls: cls };
+        var stylesEl = document.createElement("div");
+        stylesEl.className = "cg-styles";
+
+        function renderStyleRows() {
+          stylesEl.innerHTML = "";
+          currentArr.forEach(function (p, idx) {
+            var row = document.createElement("div");
+            row.className = "cg-style-row";
+            var label = document.createElement("span");
+            label.className = "cg-style-label";
+            label.textContent = "פסקה " + (idx + 1);
+            var select = buildStyleSelect(p.cls);
+            select.addEventListener("change", function () {
+              currentArr[idx].cls = select.value;
+              commit();
+            });
+            row.appendChild(label);
+            row.appendChild(select);
+            stylesEl.appendChild(row);
           });
-          overrides[lessonId][block.id] = newArr;
-          badge.textContent = "טקסט (" + newArr.length + " פסקאות)";
+        }
+
+        function commit() {
+          overrides[lessonId][block.id] = currentArr.map(function (p) { return { text: p.text, cls: p.cls }; });
+          badge.textContent = "טקסט (" + currentArr.length + " פסקאות)";
           wrap.classList.toggle("edited", isDirtyGroup(block));
           renderTabs();
 
@@ -370,21 +413,34 @@
           pendingTimers[block.id] = setTimeout(function () {
             saveGroup(lessonId, block, overrides[lessonId][block.id], statusEl);
           }, 600);
+        }
+
+        control.addEventListener("input", function () {
+          autoGrow(control);
+          var lines = control.value.split("\n");
+          currentArr = lines.map(function (text, idx) {
+            var cls = idx < currentArr.length ? currentArr[idx].cls : currentArr[currentArr.length - 1].cls;
+            return { text: text, cls: cls };
+          });
+          renderStyleRows();
+          commit();
         });
 
         resetBtn.addEventListener("click", function () {
           clearTimeout(pendingTimers[block.id]);
           delete overrides[lessonId][block.id];
-          var original = block.items.map(function (it) { return { text: it.text, cls: it.cls }; });
-          control.value = original.map(function (p) { return p.text; }).join("\n");
-          badge.textContent = "טקסט (" + original.length + " פסקאות)";
+          currentArr = block.items.map(function (it) { return { text: it.text, cls: it.cls || "" }; });
+          control.value = currentArr.map(function (p) { return p.text; }).join("\n");
+          renderStyleRows();
           autoGrow(control);
           wrap.classList.remove("edited");
           renderTabs();
-          saveGroup(lessonId, block, original, statusEl);
+          saveGroup(lessonId, block, currentArr.map(function (p) { return { text: p.text, cls: p.cls }; }), statusEl);
         });
 
+        renderStyleRows();
         wrap.appendChild(control);
+        wrap.appendChild(stylesEl);
         contentEl.appendChild(wrap);
         requestAnimationFrame(function () { autoGrow(control); });
       }
