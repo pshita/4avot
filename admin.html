@@ -108,7 +108,7 @@
     .ctrl-btn:hover { border-color: var(--accent); }
     .ctrl-btn:disabled { opacity: .3; cursor: default; }
     .ctrl-del { color: #b23b3b; }
-    .level-select, .cg-style-row select {
+    .level-select {
       font-family: inherit; font-size: .78rem; border: 1px solid var(--line); border-radius: 6px;
       padding: 3px 8px; background: var(--surface); color: var(--ink); cursor: pointer;
     }
@@ -130,15 +130,6 @@
     .inline-btn:hover { border-color: var(--accent); }
     .inline-btn-bold { font-weight: 700; }
     .inline-btn-content { background: var(--accent-soft); border-color: var(--accent); }
-    .cg-styles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .cg-style-row {
-      display: flex; align-items: center; gap: 4px;
-      background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
-      padding: 3px 8px; font-size: .74rem; color: var(--ink-soft);
-    }
-    .cg-style-row-content {
-      background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong);
-    }
     .quiz-q-input {
       width: 100%; font-weight: 600; font-family: inherit; font-size: .98rem;
       border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;
@@ -414,20 +405,6 @@
         return card;
       }
 
-      var STYLE_OPTIONS = [["", "רגיל"], ["p-light", "הקדמה"], ["p-strong", "תוכן"]];
-
-      function buildStyleSelect(selectedCls) {
-        var select = document.createElement("select");
-        STYLE_OPTIONS.forEach(function (pair) {
-          var opt = document.createElement("option");
-          opt.value = pair[0];
-          opt.textContent = pair[1];
-          if (pair[0] === (selectedCls || "")) opt.selected = true;
-          select.appendChild(opt);
-        });
-        return select;
-      }
-
       // Toggles `marker` (e.g. ** for bold, _ for italic) around the
       // selected text in `textarea` - the same lightweight syntax
       // functions/index.js turns into real <strong>/<em> tags. If the
@@ -497,6 +474,9 @@
         boldBtn.addEventListener("click", function () {
           if (wrapSelection(control, "**")) control.dispatchEvent(new Event("input", { bubbles: true }));
         });
+        // A content paragraph shows in the textarea wrapped in _..._ - the
+        // same leading/trailing mark the old italic button used, so a
+        // marked paragraph is visible at a glance without a separate list.
         var contentBtn = document.createElement("button");
         contentBtn.type = "button";
         contentBtn.className = "inline-btn inline-btn-content";
@@ -508,15 +488,19 @@
           var range = selectedLineRange(control);
           var first = range[0], last = range[1];
           if (first > last) { var t = first; first = last; last = t; }
-          var touched = block.items.slice(first, last + 1);
+          var lines = control.value.split("\n");
+          var touched = lines.slice(first, last + 1);
           if (!touched.length) return;
-          var allContent = touched.every(function (p) { return p.cls === "p-strong"; });
-          for (var i = first; i <= last && i < block.items.length; i++) {
-            block.items[i].cls = allContent ? "" : "p-strong";
+          function isWrapped(line) { return line.length >= 2 && line.slice(0, 1) === "_" && line.slice(-1) === "_"; }
+          var allWrapped = touched.every(isWrapped);
+          for (var i = first; i <= last && i < lines.length; i++) {
+            var wrapped = isWrapped(lines[i]);
+            if (allWrapped && wrapped) lines[i] = lines[i].slice(1, -1);
+            else if (!allWrapped && !wrapped) lines[i] = "_" + lines[i] + "_";
           }
+          control.value = lines.join("\n");
           control.focus();
-          onStyleChange();
-          scheduleSave(lid);
+          control.dispatchEvent(new Event("input", { bubbles: true }));
         });
         bar.appendChild(boldBtn);
         bar.appendChild(contentBtn);
@@ -533,48 +517,29 @@
         var control = document.createElement("textarea");
         control.className = "p-textarea";
         control.rows = 1;
-        control.value = block.items.map(function (p) { return p.text; }).join("\n");
+        control.value = block.items.map(function (p) {
+          return p.cls === "p-strong" ? "_" + p.text + "_" : p.text;
+        }).join("\n");
 
-        card.appendChild(renderInlineToolbar(control, block, lid, function () { renderStyleRows(); }));
-
-        var stylesEl = document.createElement("div");
-        stylesEl.className = "cg-styles";
-
-        function renderStyleRows() {
-          stylesEl.innerHTML = "";
-          block.items.forEach(function (p, idx) {
-            var row = document.createElement("div");
-            row.className = "cg-style-row" + (p.cls === "p-strong" ? " cg-style-row-content" : "");
-            var label = document.createElement("span");
-            label.textContent = "פסקה " + (idx + 1);
-            var select = buildStyleSelect(p.cls);
-            select.addEventListener("change", function () {
-              block.items[idx].cls = select.value;
-              renderStyleRows();
-              scheduleSave(lid);
-            });
-            row.appendChild(label);
-            row.appendChild(select);
-            stylesEl.appendChild(row);
-          });
-        }
+        card.appendChild(renderInlineToolbar(control, block, lid));
 
         control.addEventListener("input", function () {
           autoGrow(control);
           var lines = control.value.split("\n");
           var prevItems = block.items;
-          block.items = lines.map(function (text, idx) {
-            var cls = idx < prevItems.length ? prevItems[idx].cls : (prevItems.length ? prevItems[prevItems.length - 1].cls : "");
-            return { text: text, cls: cls };
+          block.items = lines.map(function (line, idx) {
+            var wrapped = line.length >= 2 && line.slice(0, 1) === "_" && line.slice(-1) === "_";
+            if (wrapped) return { text: line.slice(1, -1), cls: "p-strong" };
+            var prevCls = idx < prevItems.length ? prevItems[idx].cls : (prevItems.length ? prevItems[prevItems.length - 1].cls : "");
+            // a paragraph just untoggled from content goes back to regular,
+            // rather than whatever unrelated style it happened to carry
+            return { text: line, cls: prevCls === "p-strong" ? "" : prevCls };
           });
           top.querySelector(".tag-badge").textContent = "טקסט (" + block.items.length + " פסקאות)";
-          renderStyleRows();
           scheduleSave(lid);
         });
 
-        renderStyleRows();
         card.appendChild(control);
-        card.appendChild(stylesEl);
         requestAnimationFrame(function () { autoGrow(control); });
         return card;
       }
