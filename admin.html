@@ -465,11 +465,20 @@
       function renderInlineToolbar(control) {
         var bar = document.createElement("div");
         bar.className = "inline-toolbar";
+        // Tapping a button normally moves focus to it first, which on many
+        // mobile browsers collapses the textarea's text selection before
+        // the click handler even runs - so the format silently does
+        // nothing. Blocking the default mousedown/pointerdown keeps focus
+        // (and the selection) on the textarea itself.
+        function preventFocusSteal(e) { e.preventDefault(); }
+
         var boldBtn = document.createElement("button");
         boldBtn.type = "button";
         boldBtn.className = "inline-btn inline-btn-bold";
         boldBtn.textContent = "הדגשה";
         boldBtn.title = "סמנו טקסט בתיבה ואז לחצו כאן";
+        boldBtn.addEventListener("mousedown", preventFocusSteal);
+        boldBtn.addEventListener("pointerdown", preventFocusSteal);
         boldBtn.addEventListener("click", function () {
           if (wrapSelection(control, "**")) control.dispatchEvent(new Event("input", { bubbles: true }));
         });
@@ -478,6 +487,8 @@
         italicBtn.className = "inline-btn inline-btn-italic";
         italicBtn.textContent = "נטוי";
         italicBtn.title = "סמנו טקסט בתיבה ואז לחצו כאן";
+        italicBtn.addEventListener("mousedown", preventFocusSteal);
+        italicBtn.addEventListener("pointerdown", preventFocusSteal);
         italicBtn.addEventListener("click", function () {
           if (wrapSelection(control, "_")) control.dispatchEvent(new Event("input", { bubbles: true }));
         });
