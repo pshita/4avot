@@ -456,6 +456,9 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   padding-inline: 22px;
   margin-inline: -22px;
 }
+/* Consecutive content paragraphs merge into one continuous band instead of
+   showing a gap of page background between them. */
+.p-strong + .p-strong { margin-top: -10px; }
 .p-light { color: var(--ink-soft); font-weight: 400; }
 
 /* ===== Score badge ===== */
