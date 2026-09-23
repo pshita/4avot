@@ -430,7 +430,7 @@ async function rebuildAllPagesForOrder({ $index, indexCurrent, groups, token, co
     },
   });
 
-  for (const page of ["login.html", "register.html"]) {
+  for (const page of ["login.html", "register.html", "admin.html"]) {
     const path = `contents/${page}`;
     const current = await githubRequest(`${path}?ref=${REPO_BRANCH}`, { token });
     const html = Buffer.from(current.content, "base64").toString("utf8");

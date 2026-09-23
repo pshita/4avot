@@ -35,8 +35,25 @@
     .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
     .btn-primary:hover { opacity: .9; }
     .btn:disabled { opacity: .4; cursor: default; }
-    .tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
-    .tabs-group-sep { align-self: stretch; width: 1px; background: var(--line); margin: 2px 2px; }
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-strong); margin-inline-start: 6px; vertical-align: middle; }
+    .dot-error { background: #b23b3b; }
+    .lesson-select { position: relative; display: inline-block; margin-bottom: 14px; }
+    .lesson-select-trigger {
+      display: flex; align-items: center; gap: 4px;
+      font-family: inherit; font-size: .92rem; font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      max-width: 100%;
+    }
+    .lesson-select-trigger:hover { border-color: var(--accent); }
+    .lesson-select-trigger span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lesson-select-trigger .submenu-arrow { width: 16px; height: 16px; flex: none; margin-inline-start: 4px; }
+    .lesson-select:has(.lesson-select-menu:not([hidden])) .lesson-select-trigger .submenu-arrow { transform: rotate(180deg); }
+    .lesson-select-menu { min-width: 260px; }
     .lesson-order-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
     .lesson-order-controls .order-label { font-size: .86rem; color: var(--ink-soft); }
     .lesson-order-controls .order-status { font-size: .82rem; color: var(--ink-soft); }
@@ -57,22 +74,6 @@
     .new-lesson-status { margin: 10px 0 0; font-size: .85rem; }
     .new-lesson-status.status-error { color: #b23b3b; }
     .new-lesson-status.status-saved { color: #3a7d44; }
-    .tab {
-      font-family: inherit;
-      font-size: .88rem;
-      font-weight: 600;
-      padding: 9px 16px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: var(--surface);
-      color: var(--ink-soft);
-      cursor: pointer;
-    }
-    .tab:hover { border-color: var(--accent); }
-    .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .tab .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-strong); margin-inline-start: 6px; vertical-align: middle; }
-    .tab.active .dot { background: #fff; }
-    .tab .dot-error { background: #b23b3b; }
     .save-status {
       font-size: .78rem;
       color: var(--ink-soft);
@@ -182,10 +183,20 @@
         <div class="dropdown-menu brand-menu" hidden>
           <div class="submenu">
             <button type="button" class="dropdown-item submenu-trigger">
-              <span>בחירת שיעור</span>
+              <span>ארבעה אבות</span>
               <svg class="submenu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <div class="dropdown-menu submenu-panel" id="admin-lesson-picker" hidden></div>
+            <div class="dropdown-menu submenu-panel" hidden>
+            <a class="dropdown-item" href="lessons/avot-vetoldot.html">״אבות נזיקין״</a>
+            <a class="dropdown-item" href="lessons/shor-umave.html">״השור, הבור, המבעה וההבער״</a>
+            <a class="dropdown-item" href="lessons/lo-hari-hashor.html">״לא הרי השור כהרי המבעה״</a>
+            <a class="dropdown-item" href="lessons/gabei-shabbat-tanan.html">״גבי שבת תנן״</a>
+            <a class="dropdown-item" href="lessons/umai-ika.html">״ומאי איכא בין אב לתולדה״</a>
+            <a class="dropdown-item" href="lessons/gabei-tumaot-tanan.html">״גבי טומאות תנן״</a>
+            <a class="dropdown-item" href="lessons/shlosha-avot-beshor.html">״ת"ר: ג' אבות נאמרו בשור״</a>
+            <a class="dropdown-item" href="lessons/keren-manlan.html">״קרן מנלן״</a>
+            <a class="dropdown-item" href="lessons/toldah-dekeren-mai.html">״תולדה דקרן מאי״</a>
+            </div>
           </div>
           <div class="auth-area">
             <button type="button" class="auth-link auth-link-primary" id="btn-logout">התנתקות</button>
@@ -210,7 +221,14 @@
         </div>
       </div>
 
-      <div class="tabs" id="tabs"></div>
+      <div class="dropdown lesson-select" id="lesson-select">
+        <button type="button" class="lesson-select-trigger" id="lesson-select-trigger">
+          <span id="lesson-select-label">בחירת שיעור לעריכה</span>
+          <span class="dot" id="lesson-select-dot" hidden></span>
+          <svg class="submenu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="dropdown-menu lesson-select-menu" id="lesson-select-menu" hidden></div>
+      </div>
       <div class="lesson-order-controls" id="lesson-order-controls">
         <span class="order-label">סדר השיעור בדף:</span>
         <button type="button" class="ctrl-btn" id="btn-move-up" title="הזזה למעלה ברשימה">▲</button>
@@ -269,7 +287,10 @@
       var currentLesson = null;
       var authGateEl = document.getElementById("auth-gate");
       var adminMainEl = document.getElementById("admin-main");
-      var tabsEl = document.getElementById("tabs");
+      var lessonSelectTrigger = document.getElementById("lesson-select-trigger");
+      var lessonSelectLabelEl = document.getElementById("lesson-select-label");
+      var lessonSelectDotEl = document.getElementById("lesson-select-dot");
+      var lessonSelectMenuEl = document.getElementById("lesson-select-menu");
       var contentEl = document.getElementById("content");
       var saveStatusEl = document.getElementById("save-status");
       var btnLogout = document.getElementById("btn-logout");
@@ -305,7 +326,7 @@
         saveState[lid] = "pending";
         clearTimeout(saveTimers[lid]);
         setStatus(null, "");
-        renderTabs();
+        renderLessonSelect();
         saveTimers[lid] = setTimeout(function () { doSave(lid); }, 600);
       }
 
@@ -365,47 +386,69 @@
         if (!saveFn) return;
         setStatus("saving", "שומר…");
         saveState[lid] = "saving";
-        renderTabs();
+        renderLessonSelect();
         var data = lessonData[lid];
         saveFn({ lessonId: lid, titleText: data.titleText, sections: flattenSections(data.blocks) })
           .then(function () {
             saveState[lid] = "saved";
             setStatus("saved", "נשמר באתר ✓");
-            renderTabs();
+            renderLessonSelect();
           })
           .catch(function (err) {
             saveState[lid] = "error";
             setStatus("error", (err && err.message) || "שגיאה בשמירה");
-            renderTabs();
+            renderLessonSelect();
           });
       }
 
-      function renderTabs() {
-        tabsEl.innerHTML = "";
-        groupsData.forEach(function (group, gi) {
-          if (gi > 0) {
-            var sep = document.createElement("span");
-            sep.className = "tabs-group-sep";
-            tabsEl.appendChild(sep);
-          }
+      function dotHtml(lid) {
+        var state = saveState[lid];
+        if (state === "error") return '<span class="dot dot-error"></span>';
+        if (state === "pending" || state === "saving") return '<span class="dot"></span>';
+        return "";
+      }
+
+      // The dropdown that replaced the old per-lesson tab buttons: a single
+      // trigger showing the lesson currently open for editing, opening a
+      // menu grouped by page/amud (same grouping as the home page and the
+      // "insert after" choices) to switch to a different one.
+      function renderLessonSelect() {
+        lessonSelectLabelEl.textContent = currentLesson ? (LESSON_LABELS[currentLesson] || currentLesson) : "בחירת שיעור לעריכה";
+        var curState = currentLesson ? saveState[currentLesson] : null;
+        lessonSelectDotEl.className = "dot" + (curState === "error" ? " dot-error" : "");
+        lessonSelectDotEl.hidden = !(curState === "error" || curState === "pending" || curState === "saving");
+
+        lessonSelectMenuEl.innerHTML = "";
+        groupsData.forEach(function (group) {
+          var wrap = document.createElement("div");
+          wrap.className = "submenu";
+          var trigger = document.createElement("button");
+          trigger.type = "button";
+          trigger.className = "dropdown-item submenu-trigger";
+          trigger.innerHTML = "<span>" + group.title + "</span><svg class=\"submenu-arrow\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 9l6 6 6-6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>";
+          var panel = document.createElement("div");
+          panel.className = "dropdown-menu submenu-panel";
+          panel.hidden = true;
           group.lessons.forEach(function (l) {
             var lid = l.id;
-            var btn = document.createElement("button");
-            btn.type = "button";
-            btn.className = "tab" + (lid === currentLesson ? " active" : "");
-            var state = saveState[lid];
-            var dot = "";
-            if (state === "error") dot = '<span class="dot dot-error"></span>';
-            else if (state === "pending" || state === "saving") dot = '<span class="dot"></span>';
-            btn.innerHTML = (LESSON_LABELS[lid] || lid) + dot;
-            btn.addEventListener("click", function () {
+            var item = document.createElement("button");
+            item.type = "button";
+            item.className = "dropdown-item" + (lid === currentLesson ? " active" : "");
+            item.innerHTML = "<span>" + (LESSON_LABELS[lid] || lid) + "</span>" + dotHtml(lid);
+            item.addEventListener("click", function () {
               currentLesson = lid;
-              renderTabs();
+              renderLessonSelect();
               renderContent();
+              document.querySelectorAll(".dropdown-menu").forEach(function (m) { m.hidden = true; });
             });
-            tabsEl.appendChild(btn);
+            panel.appendChild(item);
           });
+          wrap.appendChild(trigger);
+          wrap.appendChild(panel);
+          lessonSelectMenuEl.appendChild(wrap);
+          wireSubmenuToggle(trigger, panel);
         });
+
         updateMoveButtons();
       }
 
@@ -986,12 +1029,12 @@
             return refreshLessonOrder();
           })
           .then(function () {
-            renderTabs();
+            renderLessonSelect();
             renderContent();
             return loadLesson(lessonId);
           })
           .then(function () {
-            renderTabs();
+            renderLessonSelect();
             renderContent();
           })
           .catch(function (err) {
@@ -1023,16 +1066,20 @@
 
       var brandTrigger = document.querySelector(".brand-dropdown .dropdown-trigger");
       var brandMenu = document.querySelector(".brand-menu");
-      var lessonPickerTrigger = document.querySelector(".brand-menu .submenu-trigger");
-      var lessonPickerPanel = document.getElementById("admin-lesson-picker");
+      // The header's own "ארבעה אבות" submenu is just for opening the live
+      // lesson pages, same as on every other page - it doesn't pick which
+      // lesson this panel is editing (that's lesson-select below).
+      var lessonsMenuTrigger = document.querySelector(".brand-menu .submenu-trigger");
+      var lessonsMenuPanel = document.querySelector(".brand-menu .submenu-panel");
       wireDropdownToggle(brandTrigger, brandMenu);
-      wireSubmenuToggle(lessonPickerTrigger, lessonPickerPanel);
+      wireSubmenuToggle(lessonsMenuTrigger, lessonsMenuPanel);
+      wireDropdownToggle(lessonSelectTrigger, lessonSelectMenuEl);
 
       // Single source of truth for lesson order/grouping: read live from
       // index.html (so it never drifts from what's actually there - a
       // lesson created or reordered from this panel, another admin session,
       // or a moment ago from somewhere else all show up the same way), then
-      // refresh everything that depends on it: the header's lesson picker,
+      // refresh everything that depends on it: the lesson-select dropdown,
       // the tabs bar, and the "insert after" choices in the new-lesson form.
       function refreshLessonOrder() {
         return fetch("index.html", { cache: "no-store" })
@@ -1067,43 +1114,10 @@
             });
             if (!currentLesson && LESSON_ORDER.length) currentLesson = LESSON_ORDER[0];
 
-            renderLessonPicker(groups);
             renderNewLessonAfterOptions();
-            renderTabs();
+            renderLessonSelect();
           })
           .catch(function () { /* best-effort: order just stays as it was */ });
-      }
-
-      function renderLessonPicker(groups) {
-        lessonPickerPanel.innerHTML = "";
-        groups.forEach(function (group) {
-          var wrap = document.createElement("div");
-          wrap.className = "submenu";
-          var trigger = document.createElement("button");
-          trigger.type = "button";
-          trigger.className = "dropdown-item submenu-trigger";
-          trigger.innerHTML = "<span>" + group.title + "</span><svg class=\"submenu-arrow\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 9l6 6 6-6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>";
-          var panel = document.createElement("div");
-          panel.className = "dropdown-menu submenu-panel";
-          panel.hidden = true;
-          group.lessons.forEach(function (lesson) {
-            var item = document.createElement("button");
-            item.type = "button";
-            item.className = "dropdown-item";
-            item.textContent = lesson.title;
-            item.addEventListener("click", function () {
-              currentLesson = lesson.id;
-              renderTabs();
-              renderContent();
-              document.querySelectorAll(".dropdown-menu").forEach(function (m) { m.hidden = true; });
-            });
-            panel.appendChild(item);
-          });
-          wrap.appendChild(trigger);
-          wrap.appendChild(panel);
-          lessonPickerPanel.appendChild(wrap);
-          wireSubmenuToggle(trigger, panel);
-        });
       }
 
       if (isReady()) {
@@ -1120,7 +1134,7 @@
               renderContent();
               return loadAll();
             }).then(function () {
-              renderTabs();
+              renderLessonSelect();
               renderContent();
             });
           } else {
