@@ -236,7 +236,7 @@
       var saveStatusEl = document.getElementById("save-status");
       var btnLogout = document.getElementById("btn-logout");
       var btnResetLesson = document.getElementById("btn-reset-lesson");
-      var saveTimer = null;
+      var saveTimers = {}; // lid -> pending debounce timer, one per lesson
       var bidSeq = 0;
       var saveFn = null;
 
@@ -252,10 +252,10 @@
 
       function scheduleSave(lid) {
         saveState[lid] = "pending";
-        clearTimeout(saveTimer);
+        clearTimeout(saveTimers[lid]);
         setStatus(null, "");
         renderTabs();
-        saveTimer = setTimeout(function () { doSave(lid); }, 600);
+        saveTimers[lid] = setTimeout(function () { doSave(lid); }, 600);
       }
 
       function doSave(lid) {
