@@ -269,13 +269,48 @@
       });
       window.addEventListener("pagehide", flushPendingSaves);
 
+      // Every subheading (h3) belongs to the paragraph text right after it -
+      // the content-band CSS already relies on that adjacency, and letting
+      // them drift apart in the editor just breaks it. Fold each such pair
+      // into one "section" block so the panel only ever offers to move or
+      // delete them together; flattenSections() below undoes this right
+      // before saving, since the site's HTML (and the Cloud Function that
+      // writes it) has no notion of a combined block - just a heading
+      // followed by a paragraph.
+      function mergeHeadingParagraphPairs(blocks) {
+        var out = [];
+        for (var i = 0; i < blocks.length; i++) {
+          var b = blocks[i], next = blocks[i + 1];
+          if (b.type === "heading" && b.tag === "h3" && next && next.type === "paragraphs") {
+            out.push({ bid: newBid(), type: "section", heading: b, paragraphs: next });
+            i++;
+          } else {
+            out.push(b);
+          }
+        }
+        return out;
+      }
+
+      function flattenSections(blocks) {
+        var out = [];
+        blocks.forEach(function (b) {
+          if (b.type === "section") {
+            out.push(b.heading);
+            out.push(b.paragraphs);
+          } else {
+            out.push(b);
+          }
+        });
+        return out;
+      }
+
       function doSave(lid) {
         if (!saveFn) return;
         setStatus("saving", "שומר…");
         saveState[lid] = "saving";
         renderTabs();
         var data = lessonData[lid];
-        saveFn({ lessonId: lid, titleText: data.titleText, sections: data.blocks })
+        saveFn({ lessonId: lid, titleText: data.titleText, sections: flattenSections(data.blocks) })
           .then(function () {
             saveState[lid] = "saved";
             setStatus("saved", "נשמר באתר ✓");
@@ -507,12 +542,13 @@
         return bar;
       }
 
-      function renderParagraphsBlock(lid, block, index, total) {
-        var card = document.createElement("div");
-        card.className = "block-card";
-        var top = blockTopRow("טקסט (" + block.items.length + " פסקאות)");
-        appendControls(top, lid, index, total, false);
-        card.appendChild(top);
+      // Builds the textarea + inline toolbar for a "paragraphs" block, wired
+      // up to `block` and `lid`. `badgeEl` (optional) gets its paragraph
+      // count kept in sync; pass null where the count isn't shown (a
+      // section's card has a fixed label instead). Shared by the standalone
+      // paragraphs block and the combined heading+paragraphs section block.
+      function buildParagraphsEditor(lid, block, badgeEl) {
+        var wrap = document.createElement("div");
 
         var control = document.createElement("textarea");
         control.className = "p-textarea";
@@ -521,7 +557,7 @@
           return p.cls === "p-strong" ? "_" + p.text + "_" : p.text;
         }).join("\n");
 
-        card.appendChild(renderInlineToolbar(control, block, lid));
+        wrap.appendChild(renderInlineToolbar(control, block, lid));
 
         control.addEventListener("input", function () {
           autoGrow(control);
@@ -535,12 +571,47 @@
             // rather than whatever unrelated style it happened to carry
             return { text: line, cls: prevCls === "p-strong" ? "" : prevCls };
           });
-          top.querySelector(".tag-badge").textContent = "טקסט (" + block.items.length + " פסקאות)";
+          if (badgeEl) badgeEl.textContent = "טקסט (" + block.items.length + " פסקאות)";
           scheduleSave(lid);
         });
 
-        card.appendChild(control);
+        wrap.appendChild(control);
         requestAnimationFrame(function () { autoGrow(control); });
+        return wrap;
+      }
+
+      function renderParagraphsBlock(lid, block, index, total) {
+        var card = document.createElement("div");
+        card.className = "block-card";
+        var top = blockTopRow("טקסט (" + block.items.length + " פסקאות)");
+        appendControls(top, lid, index, total, false);
+        card.appendChild(top);
+        card.appendChild(buildParagraphsEditor(lid, block, top.querySelector(".tag-badge")));
+        return card;
+      }
+
+      // A subheading (h3) locked together with the paragraph text right
+      // after it - one card, one set of move/delete controls, so the
+      // heading can never end up separated from its content. See
+      // mergeHeadingParagraphPairs() for how these get formed on load.
+      function renderSectionBlock(lid, block, index, total) {
+        var card = document.createElement("div");
+        card.className = "block-card";
+        var top = blockTopRow("כותרת משנה + טקסט");
+        appendControls(top, lid, index, total, false);
+        card.appendChild(top);
+
+        var headingInput = document.createElement("input");
+        headingInput.type = "text";
+        headingInput.className = "heading-input";
+        headingInput.value = block.heading.text;
+        headingInput.addEventListener("input", function () {
+          block.heading.text = headingInput.value;
+          scheduleSave(lid);
+        });
+        card.appendChild(headingInput);
+
+        card.appendChild(buildParagraphsEditor(lid, block.paragraphs, null));
         return card;
       }
 
@@ -619,8 +690,12 @@
       }
 
       function defaultBlockFor(type) {
-        if (type === "heading") return { bid: newBid(), type: "heading", tag: "h3", cls: "", text: "כותרת חדשה" };
-        if (type === "paragraphs") return { bid: newBid(), type: "paragraphs", items: [{ text: "טקסט חדש", cls: "p-strong" }] };
+        if (type === "heading") return { bid: newBid(), type: "heading", tag: "h2", cls: "", text: "כותרת קטע חדשה" };
+        if (type === "section") return {
+          bid: newBid(), type: "section",
+          heading: { bid: newBid(), type: "heading", tag: "h3", cls: "", text: "כותרת משנה חדשה" },
+          paragraphs: { bid: newBid(), type: "paragraphs", items: [{ text: "טקסט חדש", cls: "p-strong" }] }
+        };
         if (type === "quiz") return {
           bid: newBid(), type: "quiz", qid: "custom-" + newBid(), question: "שאלה חדשה",
           choices: [{ text: "תשובה נכונה", correct: true }, { text: "תשובה שגויה", correct: false }, { text: "תשובה שגויה", correct: false }]
@@ -668,7 +743,7 @@
         var menu = document.createElement("div");
         menu.className = "add-menu";
         menu.hidden = true;
-        [["heading", "כותרת"], ["paragraphs", "פסקה"], ["quiz", "שאלת תרגול"], ["box", "קלף חדש"]].forEach(function (pair) {
+        [["heading", "כותרת קטע (h2)"], ["section", "כותרת משנה + טקסט"], ["quiz", "שאלת תרגול"], ["box", "קלף חדש"]].forEach(function (pair) {
           var b = document.createElement("button");
           b.type = "button";
           b.className = "btn";
@@ -699,6 +774,7 @@
           var card;
           if (block.type === "heading") card = renderHeadingBlock(currentLesson, block, index, data.blocks.length);
           else if (block.type === "paragraphs") card = renderParagraphsBlock(currentLesson, block, index, data.blocks.length);
+          else if (block.type === "section") card = renderSectionBlock(currentLesson, block, index, data.blocks.length);
           else if (block.type === "quiz") card = renderQuizBlock(currentLesson, block, index, data.blocks.length);
           else if (block.type === "raw") card = renderRawBlock(currentLesson, block, index, data.blocks.length);
           else if (block.type === "box") card = renderBoxBlock(currentLesson, block, index, data.blocks.length);
@@ -715,6 +791,7 @@
           })
           .then(function (html) {
             lessonData[lid] = parseLessonHtml(html);
+            lessonData[lid].blocks = mergeHeadingParagraphPairs(lessonData[lid].blocks);
           })
           .catch(function () {
             lessonData[lid] = { titleText: "(שגיאה בטעינת השיעור)", blocks: [{ bid: newBid(), type: "box" }] };
