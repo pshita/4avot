@@ -408,18 +408,39 @@
         return select;
       }
 
-      // Selects text in `textarea` and wraps it with `marker` on both sides
-      // (e.g. ** for bold, _ for italic) - the same lightweight syntax
-      // functions/index.js turns into real <strong>/<em> tags. Returns
-      // false (no-op) if nothing is selected.
+      // Toggles `marker` (e.g. ** for bold, _ for italic) around the
+      // selected text in `textarea` - the same lightweight syntax
+      // functions/index.js turns into real <strong>/<em> tags. If the
+      // selection is already marked (markers selected along with the text,
+      // or sitting just outside it), they're removed instead of doubled up.
+      // Returns false (no-op) if nothing is selected.
       function wrapSelection(textarea, marker) {
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
         if (start === end) return false;
         var value = textarea.value;
-        textarea.value = value.slice(0, start) + marker + value.slice(start, end) + marker + value.slice(end);
-        textarea.selectionStart = start + marker.length;
-        textarea.selectionEnd = end + marker.length;
+        var selected = value.slice(start, end);
+        var mLen = marker.length;
+        var newValue, newStart, newEnd;
+
+        if (selected.slice(0, mLen) === marker && selected.slice(-mLen) === marker && selected.length >= mLen * 2) {
+          var inner = selected.slice(mLen, selected.length - mLen);
+          newValue = value.slice(0, start) + inner + value.slice(end);
+          newStart = start;
+          newEnd = start + inner.length;
+        } else if (value.slice(start - mLen, start) === marker && value.slice(end, end + mLen) === marker) {
+          newValue = value.slice(0, start - mLen) + selected + value.slice(end + mLen);
+          newStart = start - mLen;
+          newEnd = newStart + selected.length;
+        } else {
+          newValue = value.slice(0, start) + marker + selected + marker + value.slice(end);
+          newStart = start + mLen;
+          newEnd = end + mLen;
+        }
+
+        textarea.value = newValue;
+        textarea.selectionStart = newStart;
+        textarea.selectionEnd = newEnd;
         textarea.focus();
         return true;
       }
