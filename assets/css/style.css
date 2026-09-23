@@ -274,11 +274,37 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   margin: 20px 0 34px;
   box-shadow: var(--shadow);
 }
-.intro-box h2 { font-size: 1.1rem; margin-bottom: 8px; }
+.intro-box h2 {
+  font-size: 1.1rem;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  position: relative;
+}
+.intro-box h2::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  inset-inline-start: 0;
+  width: 46px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
 .intro-box h3 {
   font-size: 1rem;
-  margin: 22px 0 6px;
+  margin: 24px 0 10px;
+  padding-bottom: 7px;
   color: var(--accent-strong);
+  position: relative;
+}
+.intro-box h3::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  inset-inline-start: 0;
+  width: 26px;
+  height: 2px;
+  background: var(--accent-soft);
 }
 .intro-box h3:first-of-type { margin-top: 8px; }
 .intro-box p { margin: 0 0 10px; }
@@ -491,6 +517,13 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   margin-inline: -12px;
   padding-block: 10px;
   margin-bottom: 0;
+}
+/* The band replaces the heading's own underline accent, so hide it here. */
+.intro-box h2:has(+ .p-strong)::after,
+.intro-box h3:has(+ .p-strong)::after,
+.intro-box h2:has(+ .cgroup > .p-strong:first-child)::after,
+.intro-box h3:has(+ .cgroup > .p-strong:first-child)::after {
+  display: none;
 }
 .p-light { color: var(--ink-soft); font-weight: 400; }
 
