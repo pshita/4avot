@@ -120,6 +120,15 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   text-decoration: none;
   font-size: .95rem;
 }
+/* Reset native browser chrome when a .dropdown-item is a <button> (e.g. the
+   admin panel's lesson picker) instead of an <a>. */
+button.dropdown-item {
+  width: 100%;
+  text-align: start;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
 .dropdown-item:hover { background: var(--accent-soft); color: var(--accent-strong); }
 .dropdown-item.active {
   background: var(--accent-soft);

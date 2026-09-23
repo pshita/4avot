@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=39" />
+  <link rel="stylesheet" href="assets/css/style.css?v=40" />
   <style>
     .admin-wrap { max-width: 780px; margin: 0 auto; padding: 28px 20px 60px; }
     .admin-wrap h1 { font-size: 1.6rem; margin: 0 0 4px; }
@@ -177,10 +177,24 @@
 <body>
   <header class="site-header">
     <div class="wrap">
-      <a class="brand" href="index.html">
-        <span class="mark">📖</span>
-        <span>פשיטא</span>
-      </a>
+      <div class="dropdown brand-dropdown">
+        <button type="button" class="brand dropdown-trigger">
+          <span class="mark">📖</span>
+          <span>פשיטא</span>
+        </button>
+        <div class="dropdown-menu brand-menu" hidden>
+          <div class="submenu">
+            <button type="button" class="dropdown-item submenu-trigger">
+              <span>בחירת שיעור</span>
+              <svg class="submenu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="dropdown-menu submenu-panel" id="admin-lesson-picker" hidden></div>
+          </div>
+          <div class="auth-area">
+            <button type="button" class="auth-link auth-link-primary" id="btn-logout">התנתקות</button>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -205,8 +219,6 @@
         <span class="dirty-count" id="dirty-count">מחובר/ת</span>
         <div class="toolbar-actions">
           <span class="save-status" id="save-status"></span>
-          <button type="button" class="btn" id="btn-reset-lesson">רענון מהאתר החי</button>
-          <button type="button" class="btn" id="btn-logout">התנתקות</button>
         </div>
       </div>
 
@@ -261,7 +273,6 @@
       var dirtyCountEl = document.getElementById("dirty-count");
       var saveStatusEl = document.getElementById("save-status");
       var btnLogout = document.getElementById("btn-logout");
-      var btnResetLesson = document.getElementById("btn-reset-lesson");
       var btnNewLesson = document.getElementById("btn-new-lesson");
       var newLessonFormEl = document.getElementById("new-lesson-form");
       var newLessonIdInput = document.getElementById("new-lesson-id");
@@ -847,17 +858,6 @@
         logoutUser();
       });
 
-      btnResetLesson.addEventListener("click", function () {
-        var lid = currentLesson;
-        setStatus("saving", "טוען…");
-        loadLesson(lid).then(function () {
-          saveState[lid] = "idle";
-          setStatus(null, "");
-          renderTabs();
-          renderContent();
-        });
-      });
-
       function setNewLessonStatus(state, label) {
         newLessonStatusEl.className = "new-lesson-status" + (state ? " status-" + state : "");
         newLessonStatusEl.textContent = label || "";
@@ -922,8 +922,97 @@
           .catch(function (err) {
             btnCreateLesson.disabled = false;
             setNewLessonStatus("error", (err && err.message) || "יצירת השיעור נכשלה.");
+          })
+          .then(function () {
+            refreshLessonPicker();
           });
       });
+
+      // Header dropdown + nested submenu toggling, self-contained here since
+      // admin.html doesn't load the site's shared main.js. Mirrors the same
+      // classes/behavior used on the public pages for visual consistency.
+      function wireDropdownToggle(trigger, menu) {
+        trigger.addEventListener("click", function (e) {
+          e.stopPropagation();
+          var willOpen = menu.hidden;
+          document.querySelectorAll(".dropdown-menu").forEach(function (m) { m.hidden = true; });
+          menu.hidden = !willOpen;
+        });
+      }
+      function wireSubmenuToggle(trigger, panel) {
+        trigger.addEventListener("click", function (e) {
+          e.stopPropagation();
+          panel.hidden = !panel.hidden;
+        });
+      }
+      document.addEventListener("click", function () {
+        document.querySelectorAll(".dropdown-menu").forEach(function (m) { m.hidden = true; });
+      });
+
+      var brandTrigger = document.querySelector(".brand-dropdown .dropdown-trigger");
+      var brandMenu = document.querySelector(".brand-menu");
+      var lessonPickerTrigger = document.querySelector(".brand-menu .submenu-trigger");
+      var lessonPickerPanel = document.getElementById("admin-lesson-picker");
+      wireDropdownToggle(brandTrigger, brandMenu);
+      wireSubmenuToggle(lessonPickerTrigger, lessonPickerPanel);
+
+      // Grouped "which lesson" picker in the header, matching the home
+      // page's own page/amud groups - read live from index.html so it never
+      // drifts from what's actually there, including lessons created this
+      // session or a moment ago from somewhere else.
+      function refreshLessonPicker() {
+        return fetch("index.html", { cache: "no-store" })
+          .then(function (res) { return res.text(); })
+          .then(function (html) {
+            var doc = new DOMParser().parseFromString(html, "text/html");
+            var groups = [];
+            doc.querySelectorAll(".group-panel").forEach(function (panel) {
+              var titleEl = panel.querySelector(".group-title span");
+              var lessons = [];
+              panel.querySelectorAll(".lesson-card").forEach(function (card) {
+                var href = card.getAttribute("href") || "";
+                var m = href.match(/^lessons\/([a-z0-9-]+)\.html$/);
+                var h3 = card.querySelector("h3");
+                if (m) lessons.push({ id: m[1], title: h3 ? h3.textContent.trim() : m[1] });
+              });
+              groups.push({ title: titleEl ? titleEl.textContent.trim() : "", lessons: lessons });
+            });
+            renderLessonPicker(groups);
+          })
+          .catch(function () { /* best-effort: picker just stays empty */ });
+      }
+
+      function renderLessonPicker(groups) {
+        lessonPickerPanel.innerHTML = "";
+        groups.forEach(function (group) {
+          var wrap = document.createElement("div");
+          wrap.className = "submenu";
+          var trigger = document.createElement("button");
+          trigger.type = "button";
+          trigger.className = "dropdown-item submenu-trigger";
+          trigger.innerHTML = "<span>" + group.title + "</span><svg class=\"submenu-arrow\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M6 9l6 6 6-6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>";
+          var panel = document.createElement("div");
+          panel.className = "dropdown-menu submenu-panel";
+          panel.hidden = true;
+          group.lessons.forEach(function (lesson) {
+            var item = document.createElement("button");
+            item.type = "button";
+            item.className = "dropdown-item";
+            item.textContent = lesson.title;
+            item.addEventListener("click", function () {
+              currentLesson = lesson.id;
+              renderTabs();
+              renderContent();
+              document.querySelectorAll(".dropdown-menu").forEach(function (m) { m.hidden = true; });
+            });
+            panel.appendChild(item);
+          });
+          wrap.appendChild(trigger);
+          wrap.appendChild(panel);
+          lessonPickerPanel.appendChild(wrap);
+          wireSubmenuToggle(trigger, panel);
+        });
+      }
 
       if (isReady()) {
         watchAuthState(function (user) {
@@ -936,6 +1025,7 @@
             createLessonFn = httpsCallable(functions, "createLesson");
             renderTabs();
             renderContent();
+            refreshLessonPicker();
             loadAll().then(function () {
               renderTabs();
               renderContent();
