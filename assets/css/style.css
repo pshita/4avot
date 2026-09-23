@@ -454,8 +454,13 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   background: var(--accent-soft);
   padding-block: 10px;
   padding-inline: 22px;
-  margin-inline: -22px;
 }
+/* Scoped to .intro-box .p-strong (not just .p-strong) so this beats
+   .intro-box p's margin: 0 0 10px on specificity (0,1,1 vs 0,1,0) -
+   otherwise that rule silently zeroes this margin-inline back out while
+   the padding above still applies, leaving the text pushed in with
+   nothing pulling the box back out. */
+.intro-box .p-strong { margin-inline: -22px; }
 /* Consecutive content paragraphs merge into one continuous band instead of
    showing a gap of page background between them. */
 .p-strong + .p-strong { margin-top: -10px; }
