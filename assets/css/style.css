@@ -304,7 +304,7 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   inset-inline-start: 0;
   width: 26px;
   height: 2px;
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 65%, transparent 35%);
 }
 .intro-box h3:first-of-type { margin-top: 8px; }
 .intro-box p { margin: 0 0 10px; }
@@ -431,6 +431,7 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 
 /* Media placeholder box: swap for a real <img>/<video> once assets are ready */
 .media-slot {
+  margin: 0;
   border: 1px dashed var(--line);
   border-radius: 10px;
   background: var(--accent-soft);
@@ -517,13 +518,6 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   margin-inline: -12px;
   padding-block: 10px;
   margin-bottom: 0;
-}
-/* The band replaces the heading's own underline accent, so hide it here. */
-.intro-box h2:has(+ .p-strong)::after,
-.intro-box h3:has(+ .p-strong)::after,
-.intro-box h2:has(+ .cgroup > .p-strong:first-child)::after,
-.intro-box h3:has(+ .cgroup > .p-strong:first-child)::after {
-  display: none;
 }
 .p-light { color: var(--ink-soft); font-weight: 400; }
 
