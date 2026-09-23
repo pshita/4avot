@@ -444,9 +444,18 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   font-size: .9rem;
 }
 
-/* Text emphasis: plain (non-italic) source text is more important, so it's
-   rendered bolder; italic source text is supporting material, rendered lighter. */
-.p-strong { font-weight: 600; }
+/* Text emphasis: content paragraphs sit on a tinted band that bleeds to the
+   card's own edge (negative margin cancels .intro-box's side padding, then
+   matching padding keeps the text at the same position as every other
+   paragraph); introduction paragraphs stay in a muted ink tone. Neither
+   uses bold weight. */
+.p-strong {
+  font-weight: 400;
+  background: var(--accent-soft);
+  padding-block: 10px;
+  padding-inline: 22px;
+  margin-inline: -22px;
+}
 .p-light { color: var(--ink-soft); font-weight: 400; }
 
 /* ===== Score badge ===== */
