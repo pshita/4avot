@@ -301,7 +301,7 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   border-bottom: 3px solid var(--accent);
 }
 .intro-box h3 {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   margin: 24px 0 10px;
   padding-bottom: 7px;
   color: var(--accent-strong);
