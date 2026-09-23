@@ -258,6 +258,23 @@
         saveTimers[lid] = setTimeout(function () { doSave(lid); }, 600);
       }
 
+      // If the tab is backgrounded, locked, or closed while a save is still
+      // waiting out its debounce, send it immediately instead of losing it -
+      // a phone getting locked or an app switch is common enough mid-edit
+      // that the 600ms window shouldn't be a chance to drop the change.
+      function flushPendingSaves() {
+        Object.keys(saveTimers).forEach(function (lid) {
+          if (saveState[lid] === "pending") {
+            clearTimeout(saveTimers[lid]);
+            doSave(lid);
+          }
+        });
+      }
+      document.addEventListener("visibilitychange", function () {
+        if (document.hidden) flushPendingSaves();
+      });
+      window.addEventListener("pagehide", flushPendingSaves);
+
       function doSave(lid) {
         if (!saveFn) return;
         setStatus("saving", "שומר…");
