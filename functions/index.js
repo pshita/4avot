@@ -264,16 +264,30 @@ async function fileExists(path, token) {
   return res.status === 200;
 }
 
-function renderNewLessonHtml({ lessonId, titleText, prevId }) {
+// A lesson's displayed title always carries the Hebrew corner quotes
+// (the "דיבור המתחיל" convention) - add them if the admin didn't type them.
+function quoteTitle(titleText) {
+  const t = titleText.trim();
+  return /^״.*״$/.test(t) ? t : `״${t}״`;
+}
+
+function submenuLinksHtml(entries, hrefPrefix) {
+  return entries
+    .map((e) => `            <a class="dropdown-item" href="${hrefPrefix}${e.id}.html">${escapeHtml(e.title)}</a>`)
+    .join("\n");
+}
+
+function renderNewLessonHtml({ lessonId, titleText, sourceText, prevId, allEntries }) {
   const title = escapeHtml(titleText);
+  const source = escapeHtml(sourceText);
   return `<!DOCTYPE html><html lang="he" dir="rtl"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title} | ארבעה אבות</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&amp;family=Heebo:wght@300;400;600&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/css/style.css?v=29">
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&amp;family=Heebo:wght@300;400;600&amp;family=Rubik:wght@500;600;700;800;900&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css?v=39">
 </head>
 <body>
   <header class="site-header">
@@ -284,7 +298,15 @@ function renderNewLessonHtml({ lessonId, titleText, prevId }) {
           <span>פשיטא</span>
         </button>
         <div class="dropdown-menu brand-menu" hidden="">
-          <a class="dropdown-item" href="../index.html">בית</a>
+          <div class="submenu">
+            <button type="button" class="dropdown-item submenu-trigger">
+              <span>ארבעה אבות</span>
+              <svg class="submenu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="dropdown-menu submenu-panel" hidden="">
+${submenuLinksHtml(allEntries, "")}
+            </div>
+          </div>
           <div class="auth-area" id="auth-area-out">
             <a class="auth-link auth-link-primary" href="../login.html">התחברות</a>
           </div>
@@ -298,10 +320,9 @@ function renderNewLessonHtml({ lessonId, titleText, prevId }) {
   </header>
 
   <main class="wrap" style="padding-top: 34px;">
-    <div class="breadcrumbs"><a href="../index.html">בית</a> ← ${title}</div>
-
     <div class="lesson-title-row">
       <h1 class="lesson-title">${title}</h1>
+      <span class="lesson-source">${source}</span>
     </div>
 
     <div class="intro-box"><p class="p-light">כאן יופיע תוכן השיעור.</p></div>
@@ -313,37 +334,68 @@ function renderNewLessonHtml({ lessonId, titleText, prevId }) {
 
   <footer class="site-footer"></footer>
 
-  <script src="../assets/js/main.js?v=1"></script>
+  <script src="../assets/js/main.js?v=2"></script>
   <script type="module" src="../assets/js/header-auth.js"></script>
   <script type="module" src="../assets/js/score.js"></script>
-  <script type="module" src="../assets/js/quiz.js?v=11"></script>
+  <script type="module" src="../assets/js/quiz.js?v=12"></script>
 
 
 </body></html>`;
 }
 
-// Finds the last lesson in index.html's lesson grid - the new lesson gets
-// appended right after it, so this stays correct as more lessons are added
-// without ever touching this file again.
-async function findLastLessonId($index) {
-  const cards = $index(".lesson-card");
-  if (!cards.length) throw new Error("No lesson cards found in index.html");
-  const href = cards.last().attr("href") || "";
-  const m = href.match(/^lessons\/([a-z0-9-]+)\.html$/);
-  if (!m) throw new Error("Could not parse last lesson id from index.html");
-  return m[1];
+function renderNewGroupPanelHtml(sourceText, lessonId, titleText) {
+  const source = escapeHtml(sourceText);
+  return `<div class="dropdown group-title-dropdown">
+      <div class="group-panel">
+        <button type="button" class="group-title dropdown-trigger">
+          <span>${source}</span>
+          <svg class="group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="dropdown-menu lessons-menu">
+        <div class="lesson-grid">
+          <a class="lesson-card" href="lessons/${lessonId}.html">
+            <h3>${escapeHtml(titleText)}</h3>
+          </a>
+        </div>
+        </div>
+      </div>
+    </div>`;
 }
 
-async function createLessonFiles({ lessonId, titleText, token }) {
+// Reads index.html's lesson grid(s) - the source of truth for every existing
+// lesson's id, title and which page-group (e.g. "דף ב, עמוד א") it belongs
+// to - so none of this needs to live in this file's own code.
+function readLessonEntries($index) {
+  const entries = [];
+  $index(".group-panel").each((i, panel) => {
+    const $panel = $index(panel);
+    const groupTitle = $panel.find(".group-title span").first().text().trim();
+    $panel.find(".lesson-card").each((j, card) => {
+      const $card = $index(card);
+      const href = $card.attr("href") || "";
+      const m = href.match(/^lessons\/([a-z0-9-]+)\.html$/);
+      if (m) entries.push({ id: m[1], title: $card.find("h3").text().trim(), group: groupTitle });
+    });
+  });
+  return entries;
+}
+
+async function createLessonFiles({ lessonId, titleText, sourceText, token }) {
+  const quotedTitle = quoteTitle(titleText);
+
   const indexPath = "contents/index.html";
   const indexCurrent = await githubRequest(`${indexPath}?ref=${REPO_BRANCH}`, { token });
   const indexHtml = Buffer.from(indexCurrent.content, "base64").toString("utf8");
   const $index = cheerio.load(indexHtml);
-  const prevId = await findLastLessonId($index);
+
+  const existingEntries = readLessonEntries($index);
+  if (!existingEntries.length) throw new Error("No existing lessons found in index.html");
+  const prevId = existingEntries[existingEntries.length - 1].id;
+  const allEntries = existingEntries.concat([{ id: lessonId, title: quotedTitle }]);
 
   // 1) Create the new lesson file first - if a later step fails, the site
   // ends up with an unlinked page rather than a link to a missing one.
-  const newHtml = renderNewLessonHtml({ lessonId, titleText, prevId });
+  const newHtml = renderNewLessonHtml({ lessonId, titleText: quotedTitle, sourceText, prevId, allEntries });
   await githubRequest(`contents/lessons/${lessonId}.html`, {
     method: "PUT",
     token,
@@ -354,7 +406,8 @@ async function createLessonFiles({ lessonId, titleText, token }) {
     },
   });
 
-  // 2) Give the previous last lesson a "next" link to the new one.
+  // 2) Give the previous last lesson a "next" link to the new one, and add
+  // the new lesson to its own submenu too.
   const prevPath = `contents/lessons/${prevId}.html`;
   const prevCurrent = await githubRequest(`${prevPath}?ref=${REPO_BRANCH}`, { token });
   const prevHtml = Buffer.from(prevCurrent.content, "base64").toString("utf8");
@@ -363,6 +416,7 @@ async function createLessonFiles({ lessonId, titleText, token }) {
   $prevNav.removeClass("single");
   $prevNav.find("a.lesson-nav-btn:not(.lesson-nav-btn--secondary)").remove();
   $prevNav.append(`<a class="lesson-nav-btn" href="${lessonId}.html">לשיעור הבא</a>`);
+  $prev(".submenu-panel").append(`\n${submenuLinksHtml([{ id: lessonId, title: quotedTitle }], "")}\n            `);
   await githubRequest(prevPath, {
     method: "PUT",
     token,
@@ -374,10 +428,20 @@ async function createLessonFiles({ lessonId, titleText, token }) {
     },
   });
 
-  // 3) Add the new lesson to the home page's lesson grid.
-  $index(".lesson-grid").append(
-    `<a class="lesson-card" href="lessons/${lessonId}.html">\n            <h3>${escapeHtml(titleText)}</h3>\n          </a>\n          `
-  );
+  // 3) Add the new lesson to its page-group on the home page - the existing
+  // group if sourceText matches one, otherwise a brand new group panel -
+  // and update the home page's own submenu.
+  const matchingGroup = $index(".group-panel").filter((i, panel) =>
+    $index(panel).find(".group-title span").first().text().trim() === sourceText.trim()
+  ).first();
+  if (matchingGroup.length) {
+    matchingGroup.find(".lesson-grid").append(
+      `<a class="lesson-card" href="lessons/${lessonId}.html">\n            <h3>${escapeHtml(quotedTitle)}</h3>\n          </a>\n          `
+    );
+  } else {
+    $index("main.wrap").append(renderNewGroupPanelHtml(sourceText, lessonId, quotedTitle));
+  }
+  $index(".submenu-panel").append(`\n${submenuLinksHtml([{ id: lessonId, title: quotedTitle }], "lessons/")}\n            `);
   await githubRequest(indexPath, {
     method: "PUT",
     token,
@@ -388,6 +452,46 @@ async function createLessonFiles({ lessonId, titleText, token }) {
       branch: REPO_BRANCH,
     },
   });
+
+  // 4) Update every other page's submenu: the two auth pages, and every
+  // existing lesson file besides the one already handled in step 2.
+  const otherRootPages = ["login.html", "register.html"];
+  for (const page of otherRootPages) {
+    const path = `contents/${page}`;
+    const current = await githubRequest(`${path}?ref=${REPO_BRANCH}`, { token });
+    const html = Buffer.from(current.content, "base64").toString("utf8");
+    const $ = cheerio.load(html);
+    $(".submenu-panel").append(`\n${submenuLinksHtml([{ id: lessonId, title: quotedTitle }], "lessons/")}\n            `);
+    await githubRequest(path, {
+      method: "PUT",
+      token,
+      body: {
+        message: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
+        content: Buffer.from($.html(), "utf8").toString("base64"),
+        sha: current.sha,
+        branch: REPO_BRANCH,
+      },
+    });
+  }
+
+  for (const entry of existingEntries) {
+    if (entry.id === prevId) continue;
+    const path = `contents/lessons/${entry.id}.html`;
+    const current = await githubRequest(`${path}?ref=${REPO_BRANCH}`, { token });
+    const html = Buffer.from(current.content, "base64").toString("utf8");
+    const $ = cheerio.load(html);
+    $(".submenu-panel").append(`\n${submenuLinksHtml([{ id: lessonId, title: quotedTitle }], "")}\n            `);
+    await githubRequest(path, {
+      method: "PUT",
+      token,
+      body: {
+        message: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
+        content: Buffer.from($.html(), "utf8").toString("base64"),
+        sha: current.sha,
+        branch: REPO_BRANCH,
+      },
+    });
+  }
 }
 
 exports.createLesson = onCall({ secrets: [GITHUB_TOKEN] }, async (request) => {
@@ -395,12 +499,15 @@ exports.createLesson = onCall({ secrets: [GITHUB_TOKEN] }, async (request) => {
     throw new HttpsError("permission-denied", "אין הרשאה לערוך תוכן באתר.");
   }
 
-  const { lessonId, titleText } = request.data || {};
+  const { lessonId, titleText, sourceText } = request.data || {};
   if (!isValidLessonId(lessonId)) {
     throw new HttpsError("invalid-argument", "מזהה שיעור לא תקין (אותיות אנגליות קטנות, ספרות ומקפים בלבד).");
   }
   if (typeof titleText !== "string" || !titleText.trim()) {
-    throw new HttpsError("invalid-argument", "צריך כותרת לשיעור.");
+    throw new HttpsError("invalid-argument", "צריך כותרת (דיבור המתחיל) לשיעור.");
+  }
+  if (typeof sourceText !== "string" || !sourceText.trim()) {
+    throw new HttpsError("invalid-argument", "צריך לציין על איזה דף ועמוד השיעור.");
   }
 
   const token = GITHUB_TOKEN.value();
@@ -409,7 +516,7 @@ exports.createLesson = onCall({ secrets: [GITHUB_TOKEN] }, async (request) => {
   }
 
   try {
-    await createLessonFiles({ lessonId, titleText: titleText.trim(), token });
+    await createLessonFiles({ lessonId, titleText: titleText.trim(), sourceText: sourceText.trim(), token });
     return { ok: true, lessonId };
   } catch (err) {
     logger.error(`createLesson failed for ${lessonId}`, err);

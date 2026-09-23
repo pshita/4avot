@@ -218,8 +218,12 @@
           <input type="text" id="new-lesson-id" placeholder="לדוגמה: my-new-lesson" dir="ltr">
         </div>
         <div class="field">
-          <label for="new-lesson-title">כותרת השיעור</label>
-          <input type="text" id="new-lesson-title" placeholder="כותרת בעברית">
+          <label for="new-lesson-title">כותרת השיעור (הדיבור המתחיל)</label>
+          <input type="text" id="new-lesson-title" placeholder="לדוגמה: ״גבי שבת תנן״">
+        </div>
+        <div class="field">
+          <label for="new-lesson-source">דף ועמוד</label>
+          <input type="text" id="new-lesson-source" placeholder="לדוגמה: דף ב, עמוד א">
         </div>
         <div class="new-lesson-actions">
           <button type="button" class="btn btn-primary" id="btn-create-lesson">צור שיעור</button>
@@ -262,6 +266,7 @@
       var newLessonFormEl = document.getElementById("new-lesson-form");
       var newLessonIdInput = document.getElementById("new-lesson-id");
       var newLessonTitleInput = document.getElementById("new-lesson-title");
+      var newLessonSourceInput = document.getElementById("new-lesson-source");
       var btnCreateLesson = document.getElementById("btn-create-lesson");
       var btnCancelNewLesson = document.getElementById("btn-cancel-new-lesson");
       var newLessonStatusEl = document.getElementById("new-lesson-status");
@@ -863,6 +868,7 @@
         if (!newLessonFormEl.hidden) {
           newLessonIdInput.value = "";
           newLessonTitleInput.value = "";
+          newLessonSourceInput.value = "";
           setNewLessonStatus(null, "");
           newLessonIdInput.focus();
         }
@@ -878,6 +884,7 @@
         if (!createLessonFn) return;
         var lessonId = newLessonIdInput.value.trim();
         var titleText = newLessonTitleInput.value.trim();
+        var sourceText = newLessonSourceInput.value.trim();
         if (!LESSON_ID_RE.test(lessonId)) {
           setNewLessonStatus("error", "מזהה לא תקין - רק אותיות אנגליות קטנות, ספרות ומקפים.");
           return;
@@ -887,12 +894,16 @@
           return;
         }
         if (!titleText) {
-          setNewLessonStatus("error", "צריך כותרת לשיעור.");
+          setNewLessonStatus("error", "צריך כותרת (דיבור המתחיל) לשיעור.");
+          return;
+        }
+        if (!sourceText) {
+          setNewLessonStatus("error", "צריך לציין על איזה דף ועמוד השיעור.");
           return;
         }
         btnCreateLesson.disabled = true;
         setNewLessonStatus("saving", "יוצר שיעור…");
-        createLessonFn({ lessonId: lessonId, titleText: titleText })
+        createLessonFn({ lessonId: lessonId, titleText: titleText, sourceText: sourceText })
           .then(function () {
             LESSON_ORDER.push(lessonId);
             LESSON_LABELS[lessonId] = titleText;
