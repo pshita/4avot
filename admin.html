@@ -136,6 +136,9 @@
       background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
       padding: 3px 8px; font-size: .74rem; color: var(--ink-soft);
     }
+    .cg-style-row-content {
+      background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong);
+    }
     .quiz-q-input {
       width: 100%; font-weight: 600; font-family: inherit; font-size: .98rem;
       border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;
@@ -541,12 +544,13 @@
           stylesEl.innerHTML = "";
           block.items.forEach(function (p, idx) {
             var row = document.createElement("div");
-            row.className = "cg-style-row";
+            row.className = "cg-style-row" + (p.cls === "p-strong" ? " cg-style-row-content" : "");
             var label = document.createElement("span");
             label.textContent = "פסקה " + (idx + 1);
             var select = buildStyleSelect(p.cls);
             select.addEventListener("change", function () {
               block.items[idx].cls = select.value;
+              renderStyleRows();
               scheduleSave(lid);
             });
             row.appendChild(label);
