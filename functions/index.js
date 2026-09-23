@@ -99,14 +99,14 @@ exports.notifyParentsOnQuizMilestone = onDocumentWritten(
 const REPO_OWNER = "pshita";
 const REPO_NAME = "4avot";
 const REPO_BRANCH = "main";
-const LESSON_IDS = [
-  "avot-vetoldot",
-  "shor-umave",
-  "lo-hari-hashor",
-  "gabei-shabbat-tanan",
-  "umai-ika",
-  "gabei-tumaot-tanan",
-];
+
+// Lesson ids are validated by shape (matches every id already in use, e.g.
+// "avot-vetoldot") rather than a fixed list, so a newly created lesson can
+// be edited right away with no code change or redeploy.
+const LESSON_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+function isValidLessonId(id) {
+  return typeof id === "string" && id.length >= 2 && id.length <= 60 && LESSON_ID_RE.test(id);
+}
 
 // Only this account may write to the site's content. Computed the same way
 // auth.js turns a name into a pseudo-email: sha256("<first>|<last>", both
@@ -241,7 +241,7 @@ exports.saveLessonContent = onCall({ secrets: [GITHUB_TOKEN] }, async (request) 
   }
 
   const { lessonId, titleText, sections } = request.data || {};
-  if (!LESSON_IDS.includes(lessonId)) {
+  if (!isValidLessonId(lessonId)) {
     throw new HttpsError("invalid-argument", "שיעור לא מוכר.");
   }
   if (!validateSections(sections)) {
@@ -254,5 +254,165 @@ exports.saveLessonContent = onCall({ secrets: [GITHUB_TOKEN] }, async (request) 
   } catch (err) {
     logger.error(`saveLessonContent failed for ${lessonId}`, err);
     throw new HttpsError("internal", "השמירה נכשלה. נסו שוב.");
+  }
+});
+
+async function fileExists(path, token) {
+  const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/${path}?ref=${REPO_BRANCH}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "User-Agent": "avot-admin-panel" },
+  });
+  return res.status === 200;
+}
+
+function renderNewLessonHtml({ lessonId, titleText, prevId }) {
+  const title = escapeHtml(titleText);
+  return `<!DOCTYPE html><html lang="he" dir="rtl"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} | ארבעה אבות</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&amp;family=Heebo:wght@300;400;600&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css?v=29">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="dropdown brand-dropdown">
+        <button type="button" class="brand dropdown-trigger">
+          <span class="mark">📖</span>
+          <span>פשיטא</span>
+        </button>
+        <div class="dropdown-menu brand-menu" hidden="">
+          <a class="dropdown-item" href="../index.html">בית</a>
+          <div class="auth-area" id="auth-area-out">
+            <a class="auth-link auth-link-primary" href="../login.html">התחברות</a>
+          </div>
+          <div class="auth-area" id="auth-area-in" hidden="">
+            <span class="score-badge" id="score-badge" hidden=""></span>
+            <button type="button" class="auth-link auth-link-primary" id="logout-btn">התנתקות</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap" style="padding-top: 34px;">
+    <div class="breadcrumbs"><a href="../index.html">בית</a> ← ${title}</div>
+
+    <div class="lesson-title-row">
+      <h1 class="lesson-title">${title}</h1>
+    </div>
+
+    <div class="intro-box"><p class="p-light">כאן יופיע תוכן השיעור.</p></div>
+
+    <div class="lesson-nav single">
+      <a class="lesson-nav-btn lesson-nav-btn--secondary" href="${prevId}.html">לשיעור הקודם</a>
+    </div>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script src="../assets/js/main.js?v=1"></script>
+  <script type="module" src="../assets/js/header-auth.js"></script>
+  <script type="module" src="../assets/js/score.js"></script>
+  <script type="module" src="../assets/js/quiz.js?v=11"></script>
+
+
+</body></html>`;
+}
+
+// Finds the last lesson in index.html's lesson grid - the new lesson gets
+// appended right after it, so this stays correct as more lessons are added
+// without ever touching this file again.
+async function findLastLessonId($index) {
+  const cards = $index(".lesson-card");
+  if (!cards.length) throw new Error("No lesson cards found in index.html");
+  const href = cards.last().attr("href") || "";
+  const m = href.match(/^lessons\/([a-z0-9-]+)\.html$/);
+  if (!m) throw new Error("Could not parse last lesson id from index.html");
+  return m[1];
+}
+
+async function createLessonFiles({ lessonId, titleText, token }) {
+  const indexPath = "contents/index.html";
+  const indexCurrent = await githubRequest(`${indexPath}?ref=${REPO_BRANCH}`, { token });
+  const indexHtml = Buffer.from(indexCurrent.content, "base64").toString("utf8");
+  const $index = cheerio.load(indexHtml);
+  const prevId = await findLastLessonId($index);
+
+  // 1) Create the new lesson file first - if a later step fails, the site
+  // ends up with an unlinked page rather than a link to a missing one.
+  const newHtml = renderNewLessonHtml({ lessonId, titleText, prevId });
+  await githubRequest(`contents/lessons/${lessonId}.html`, {
+    method: "PUT",
+    token,
+    body: {
+      message: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
+      content: Buffer.from(newHtml, "utf8").toString("base64"),
+      branch: REPO_BRANCH,
+    },
+  });
+
+  // 2) Give the previous last lesson a "next" link to the new one.
+  const prevPath = `contents/lessons/${prevId}.html`;
+  const prevCurrent = await githubRequest(`${prevPath}?ref=${REPO_BRANCH}`, { token });
+  const prevHtml = Buffer.from(prevCurrent.content, "base64").toString("utf8");
+  const $prev = cheerio.load(prevHtml);
+  const $prevNav = $prev(".lesson-nav");
+  $prevNav.removeClass("single");
+  $prevNav.find("a.lesson-nav-btn:not(.lesson-nav-btn--secondary)").remove();
+  $prevNav.append(`<a class="lesson-nav-btn" href="${lessonId}.html">לשיעור הבא</a>`);
+  await githubRequest(prevPath, {
+    method: "PUT",
+    token,
+    body: {
+      message: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
+      content: Buffer.from($prev.html(), "utf8").toString("base64"),
+      sha: prevCurrent.sha,
+      branch: REPO_BRANCH,
+    },
+  });
+
+  // 3) Add the new lesson to the home page's lesson grid.
+  $index(".lesson-grid").append(
+    `<a class="lesson-card" href="lessons/${lessonId}.html">\n            <h3>${escapeHtml(titleText)}</h3>\n          </a>\n          `
+  );
+  await githubRequest(indexPath, {
+    method: "PUT",
+    token,
+    body: {
+      message: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
+      content: Buffer.from($index.html(), "utf8").toString("base64"),
+      sha: indexCurrent.sha,
+      branch: REPO_BRANCH,
+    },
+  });
+}
+
+exports.createLesson = onCall({ secrets: [GITHUB_TOKEN] }, async (request) => {
+  if (!request.auth || request.auth.token.email !== ALLOWED_EMAIL) {
+    throw new HttpsError("permission-denied", "אין הרשאה לערוך תוכן באתר.");
+  }
+
+  const { lessonId, titleText } = request.data || {};
+  if (!isValidLessonId(lessonId)) {
+    throw new HttpsError("invalid-argument", "מזהה שיעור לא תקין (אותיות אנגליות קטנות, ספרות ומקפים בלבד).");
+  }
+  if (typeof titleText !== "string" || !titleText.trim()) {
+    throw new HttpsError("invalid-argument", "צריך כותרת לשיעור.");
+  }
+
+  const token = GITHUB_TOKEN.value();
+  if (await fileExists(`contents/lessons/${lessonId}.html`, token)) {
+    throw new HttpsError("already-exists", "כבר קיים שיעור עם המזהה הזה.");
+  }
+
+  try {
+    await createLessonFiles({ lessonId, titleText: titleText.trim(), token });
+    return { ok: true, lessonId };
+  } catch (err) {
+    logger.error(`createLesson failed for ${lessonId}`, err);
+    throw new HttpsError("internal", "יצירת השיעור נכשלה. נסו שוב.");
   }
 });

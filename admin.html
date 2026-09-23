@@ -47,7 +47,19 @@
     .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
     .btn-primary:hover { opacity: .9; }
     .btn:disabled { opacity: .4; cursor: default; }
-    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    #btn-new-lesson { margin-bottom: 22px; }
+    .new-lesson-form {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+      padding: 16px; margin-bottom: 22px; max-width: 420px;
+    }
+    .new-lesson-form .field { margin-bottom: 14px; }
+    .new-lesson-form label { display: block; font-size: .82rem; color: var(--ink-soft); margin-bottom: 5px; }
+    #new-lesson-id { direction: ltr; text-align: left; }
+    .new-lesson-actions { display: flex; gap: 8px; }
+    .new-lesson-status { margin: 10px 0 0; font-size: .85rem; }
+    .new-lesson-status.status-error { color: #b23b3b; }
+    .new-lesson-status.status-saved { color: #3a7d44; }
     .tab {
       font-family: inherit;
       font-size: .88rem;
@@ -199,6 +211,22 @@
       </div>
 
       <div class="tabs" id="tabs"></div>
+      <button type="button" class="btn" id="btn-new-lesson">+ שיעור חדש</button>
+      <div class="new-lesson-form" id="new-lesson-form" hidden>
+        <div class="field">
+          <label for="new-lesson-id">מזהה (אותיות אנגליות קטנות, ספרות ומקפים בלבד)</label>
+          <input type="text" id="new-lesson-id" placeholder="לדוגמה: my-new-lesson" dir="ltr">
+        </div>
+        <div class="field">
+          <label for="new-lesson-title">כותרת השיעור</label>
+          <input type="text" id="new-lesson-title" placeholder="כותרת בעברית">
+        </div>
+        <div class="new-lesson-actions">
+          <button type="button" class="btn btn-primary" id="btn-create-lesson">צור שיעור</button>
+          <button type="button" class="btn" id="btn-cancel-new-lesson">ביטול</button>
+        </div>
+        <p class="new-lesson-status" id="new-lesson-status"></p>
+      </div>
       <div id="content"></div>
     </div>
   </div>
@@ -230,9 +258,17 @@
       var saveStatusEl = document.getElementById("save-status");
       var btnLogout = document.getElementById("btn-logout");
       var btnResetLesson = document.getElementById("btn-reset-lesson");
+      var btnNewLesson = document.getElementById("btn-new-lesson");
+      var newLessonFormEl = document.getElementById("new-lesson-form");
+      var newLessonIdInput = document.getElementById("new-lesson-id");
+      var newLessonTitleInput = document.getElementById("new-lesson-title");
+      var btnCreateLesson = document.getElementById("btn-create-lesson");
+      var btnCancelNewLesson = document.getElementById("btn-cancel-new-lesson");
+      var newLessonStatusEl = document.getElementById("new-lesson-status");
       var saveTimers = {}; // lid -> pending debounce timer, one per lesson
       var bidSeq = 0;
       var saveFn = null;
+      var createLessonFn = null;
 
       function newBid() {
         bidSeq++;
@@ -817,6 +853,67 @@
         });
       });
 
+      function setNewLessonStatus(state, label) {
+        newLessonStatusEl.className = "new-lesson-status" + (state ? " status-" + state : "");
+        newLessonStatusEl.textContent = label || "";
+      }
+
+      btnNewLesson.addEventListener("click", function () {
+        newLessonFormEl.hidden = !newLessonFormEl.hidden;
+        if (!newLessonFormEl.hidden) {
+          newLessonIdInput.value = "";
+          newLessonTitleInput.value = "";
+          setNewLessonStatus(null, "");
+          newLessonIdInput.focus();
+        }
+      });
+
+      btnCancelNewLesson.addEventListener("click", function () {
+        newLessonFormEl.hidden = true;
+      });
+
+      var LESSON_ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+      btnCreateLesson.addEventListener("click", function () {
+        if (!createLessonFn) return;
+        var lessonId = newLessonIdInput.value.trim();
+        var titleText = newLessonTitleInput.value.trim();
+        if (!LESSON_ID_RE.test(lessonId)) {
+          setNewLessonStatus("error", "מזהה לא תקין - רק אותיות אנגליות קטנות, ספרות ומקפים.");
+          return;
+        }
+        if (LESSON_ORDER.indexOf(lessonId) !== -1) {
+          setNewLessonStatus("error", "כבר קיים שיעור עם המזהה הזה.");
+          return;
+        }
+        if (!titleText) {
+          setNewLessonStatus("error", "צריך כותרת לשיעור.");
+          return;
+        }
+        btnCreateLesson.disabled = true;
+        setNewLessonStatus("saving", "יוצר שיעור…");
+        createLessonFn({ lessonId: lessonId, titleText: titleText })
+          .then(function () {
+            LESSON_ORDER.push(lessonId);
+            LESSON_LABELS[lessonId] = titleText;
+            lessonData[lessonId] = null;
+            saveState[lessonId] = "idle";
+            btnCreateLesson.disabled = false;
+            newLessonFormEl.hidden = true;
+            currentLesson = lessonId;
+            renderTabs();
+            renderContent();
+            return loadLesson(lessonId).then(function () {
+              renderTabs();
+              renderContent();
+            });
+          })
+          .catch(function (err) {
+            btnCreateLesson.disabled = false;
+            setNewLessonStatus("error", (err && err.message) || "יצירת השיעור נכשלה.");
+          });
+      });
+
       if (isReady()) {
         watchAuthState(function (user) {
           if (user) {
@@ -825,6 +922,7 @@
             dirtyCountEl.textContent = user.displayName ? "מחובר/ת: " + user.displayName : "מחובר/ת";
             var functions = getFunctions(getApp());
             saveFn = httpsCallable(functions, "saveLessonContent");
+            createLessonFn = httpsCallable(functions, "createLesson");
             renderTabs();
             renderContent();
             loadAll().then(function () {
