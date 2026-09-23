@@ -113,6 +113,20 @@ const LESSON_IDS = [
 // normalized), first 32 hex chars, prefixed "u", @arba-avot-users.local.
 const ALLOWED_EMAIL = "ufd5a4a70e876fc8672e3d112e6866c55@arba-avot-users.local";
 
+// Paragraph text may carry lightweight inline markup: **bold** and
+// _italic_, matching what admin.html's textarea buttons insert. Escape
+// everything else first so the markers are the only way to produce tags.
+function escapeHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function markdownLiteToHtml(text) {
+  let out = escapeHtml(text);
+  out = out.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  out = out.replace(/_(.+?)_/g, "<em>$1</em>");
+  return out;
+}
+
 function renderQuizBlock($, block) {
   const $div = $("<div></div>").addClass("quiz");
   $div.attr("data-question-id", block.qid || "");
@@ -150,7 +164,7 @@ function renderBoxes($, sections) {
       $current.append($el);
     } else if (block.type === "paragraphs") {
       (block.items || []).forEach((it) => {
-        const $p = $("<p></p>").text(it.text || "");
+        const $p = $("<p></p>").html(markdownLiteToHtml(it.text || ""));
         if (it.cls) $p.addClass(it.cls);
         $current.append($p);
       });

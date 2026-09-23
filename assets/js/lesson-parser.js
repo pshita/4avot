@@ -6,6 +6,25 @@
 // saveLessonContent (functions/index.js) writes back out, so what you see
 // in the editor always matches what's actually live.
 
+// Inverse of markdownLiteToHtml in functions/index.js: turns <strong>/<em>
+// children back into **bold**/_italic_ markers so the admin textarea shows
+// (and can keep editing) the same lightweight syntax it writes.
+function serializeInline(el) {
+  let out = "";
+  el.childNodes.forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      out += node.textContent;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const tag = node.tagName.toLowerCase();
+      const inner = serializeInline(node);
+      if (tag === "strong" || tag === "b") out += "**" + inner + "**";
+      else if (tag === "em" || tag === "i") out += "_" + inner + "_";
+      else out += node.textContent;
+    }
+  });
+  return out;
+}
+
 function parseQuiz(div) {
   const qid = div.getAttribute("data-question-id") || "";
   const questionEl = div.querySelector(".quiz-question");
@@ -49,13 +68,13 @@ export function parseLessonHtml(html) {
         flush();
         blocks.push({ bid: nextBid(), type: "heading", tag, cls: child.className || "", text: child.textContent.trim() });
       } else if (tag === "p") {
-        pending.push({ text: child.textContent.trim(), cls: child.className || "" });
+        pending.push({ text: serializeInline(child).trim(), cls: child.className || "" });
       } else if (tag === "div" && child.classList.contains("cgroup")) {
         // legacy wrapper from an earlier version of the site; unwrap it so
         // its paragraphs join the current run like any other adjacent <p>.
         Array.from(child.children).forEach((p) => {
           if (p.tagName.toLowerCase() === "p") {
-            pending.push({ text: p.textContent.trim(), cls: p.className || "" });
+            pending.push({ text: serializeInline(p).trim(), cls: p.className || "" });
           }
         });
       } else if (tag === "div" && child.classList.contains("quiz")) {

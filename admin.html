@@ -122,6 +122,14 @@
       border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: none;
       direction: rtl; text-align: right; color: var(--ink); background: var(--surface);
     }
+    .inline-toolbar { display: flex; gap: 6px; margin-bottom: 6px; }
+    .inline-btn {
+      font-family: inherit; font-size: .78rem; border: 1px solid var(--line); border-radius: 6px;
+      padding: 4px 10px; background: var(--bg); color: var(--ink); cursor: pointer;
+    }
+    .inline-btn:hover { border-color: var(--accent); }
+    .inline-btn-bold { font-weight: 700; }
+    .inline-btn-italic { font-style: italic; }
     .cg-styles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .cg-style-row {
       display: flex; align-items: center; gap: 4px;
@@ -178,6 +186,7 @@
       עורכים כאן חופשי - כל שינוי <strong>נכתב ישירות לאתר</strong> (commit ל-GitHub) כמה שניות אחרי שמפסיקים להקליד.
       התוכן שרואים כאן נטען חי מהאתר בכל פתיחה של הפאנל, אז תמיד רואים את המצב האמיתי.
       השינוי מופיע באתר עצמו אחרי כדקה (הזמן שלוקח ל-GitHub Pages לבנות מחדש).
+      כדי להדגיש או להטות טקסט בתוך פסקה: מסמנים מילים בתיבה ולוחצים "הדגשה" או "נטוי".
     </div>
 
     <div id="auth-gate">
@@ -399,6 +408,46 @@
         return select;
       }
 
+      // Selects text in `textarea` and wraps it with `marker` on both sides
+      // (e.g. ** for bold, _ for italic) - the same lightweight syntax
+      // functions/index.js turns into real <strong>/<em> tags. Returns
+      // false (no-op) if nothing is selected.
+      function wrapSelection(textarea, marker) {
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        if (start === end) return false;
+        var value = textarea.value;
+        textarea.value = value.slice(0, start) + marker + value.slice(start, end) + marker + value.slice(end);
+        textarea.selectionStart = start + marker.length;
+        textarea.selectionEnd = end + marker.length;
+        textarea.focus();
+        return true;
+      }
+
+      function renderInlineToolbar(control) {
+        var bar = document.createElement("div");
+        bar.className = "inline-toolbar";
+        var boldBtn = document.createElement("button");
+        boldBtn.type = "button";
+        boldBtn.className = "inline-btn inline-btn-bold";
+        boldBtn.textContent = "הדגשה";
+        boldBtn.title = "סמנו טקסט בתיבה ואז לחצו כאן";
+        boldBtn.addEventListener("click", function () {
+          if (wrapSelection(control, "**")) control.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+        var italicBtn = document.createElement("button");
+        italicBtn.type = "button";
+        italicBtn.className = "inline-btn inline-btn-italic";
+        italicBtn.textContent = "נטוי";
+        italicBtn.title = "סמנו טקסט בתיבה ואז לחצו כאן";
+        italicBtn.addEventListener("click", function () {
+          if (wrapSelection(control, "_")) control.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+        bar.appendChild(boldBtn);
+        bar.appendChild(italicBtn);
+        return bar;
+      }
+
       function renderParagraphsBlock(lid, block, index, total) {
         var card = document.createElement("div");
         card.className = "block-card";
@@ -410,6 +459,8 @@
         control.className = "p-textarea";
         control.rows = 1;
         control.value = block.items.map(function (p) { return p.text; }).join("\n");
+
+        card.appendChild(renderInlineToolbar(control));
 
         var stylesEl = document.createElement("div");
         stylesEl.className = "cg-styles";
