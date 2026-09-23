@@ -65,6 +65,10 @@ export function getDb() {
   return db;
 }
 
+export function getApp() {
+  return app;
+}
+
 export function getAuthInstance() {
   return auth;
 }

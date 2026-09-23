@@ -11,14 +11,5 @@ service cloud.firestore {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
     }
-
-    // Live text overrides for lesson headings/paragraphs, edited from
-    // admin.html. Readable by every visitor (lesson pages fetch it on
-    // load); writable by any signed-in user, since admin.html is not
-    // linked anywhere on the site.
-    match /content/{lessonId} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
   }
 }

@@ -35,9 +35,7 @@ function wrapQuizBody(quizEl) {
   body.appendChild(feedback);
 }
 
-function wrapAllQuizBodies() {
-  document.querySelectorAll(".quiz").forEach(wrapQuizBody);
-}
+document.querySelectorAll(".quiz").forEach(wrapQuizBody);
 
 // Wraps each run of directly-adjacent .quiz elements in a collapsed
 // "שנחזור על זה?" group, revealed one question at a time.
@@ -149,62 +147,54 @@ function completeQuizGroup(groupState) {
   doneMsg.hidden = false;
 }
 
-// Wires up every .quiz element currently in the document: wraps each one's
-// body, groups consecutive quizzes, attaches choice click handlers, and
-// locks in already-answered questions. Called once, after the page's final
-// quiz DOM is in place (content-override.js may rebuild it first from
-// saved edits), never before — calling it twice would double-wrap elements.
-export function initQuizzes() {
-  wrapAllQuizBodies();
-  initQuizGroups();
+initQuizGroups();
 
+document.querySelectorAll(".quiz").forEach((quizEl) => {
+  const qid = quizEl.dataset.questionId;
+  const feedback = quizEl.querySelector(".quiz-feedback");
+
+  quizEl.querySelectorAll(".quiz-choice").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (quizEl.dataset.answered === "true") return;
+      quizEl.dataset.answered = "true";
+
+      const isCorrect = btn.dataset.correct === "true";
+      lockQuiz(quizEl, true);
+      if (!isCorrect) btn.classList.add("incorrect");
+
+      feedback.hidden = false;
+      feedback.textContent = isCorrect ? "נכון!" : "לא נכון";
+      feedback.className = "quiz-feedback " + (isCorrect ? "correct" : "incorrect");
+
+      const user = getCurrentQuizUser();
+      if (isCorrect && user) {
+        if (!getCachedAnswers()[qid]) {
+          markQuestionCorrect(qid);
+          try {
+            await setSectionComplete(QUIZ_LESSON_ID, qid, true);
+          } catch (err) {
+            /* best-effort: score already updated locally */
+          }
+        }
+        markSectionDoneIfAny(quizEl);
+      }
+
+      setTimeout(() => {
+        feedback.hidden = true;
+        advanceQuizGroup(quizEl);
+      }, 1400);
+    });
+  });
+});
+
+// Runs immediately with whatever's cached, and again after each auth-state
+// change (login/logout), so already-answered questions stay locked in.
+onAnswersReady((answers) => {
   document.querySelectorAll(".quiz").forEach((quizEl) => {
     const qid = quizEl.dataset.questionId;
-    const feedback = quizEl.querySelector(".quiz-feedback");
-
-    quizEl.querySelectorAll(".quiz-choice").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        if (quizEl.dataset.answered === "true") return;
-        quizEl.dataset.answered = "true";
-
-        const isCorrect = btn.dataset.correct === "true";
-        lockQuiz(quizEl, true);
-        if (!isCorrect) btn.classList.add("incorrect");
-
-        feedback.hidden = false;
-        feedback.textContent = isCorrect ? "נכון!" : "לא נכון";
-        feedback.className = "quiz-feedback " + (isCorrect ? "correct" : "incorrect");
-
-        const user = getCurrentQuizUser();
-        if (isCorrect && user) {
-          if (!getCachedAnswers()[qid]) {
-            markQuestionCorrect(qid);
-            try {
-              await setSectionComplete(QUIZ_LESSON_ID, qid, true);
-            } catch (err) {
-              /* best-effort: score already updated locally */
-            }
-          }
-          markSectionDoneIfAny(quizEl);
-        }
-
-        setTimeout(() => {
-          feedback.hidden = true;
-          advanceQuizGroup(quizEl);
-        }, 1400);
-      });
-    });
+    if (answers[qid] && quizEl.dataset.answered !== "true") {
+      quizEl.dataset.answered = "true";
+      lockQuiz(quizEl, true);
+    }
   });
-
-  // Runs immediately with whatever's cached, and again after each auth-state
-  // change (login/logout), so already-answered questions stay locked in.
-  onAnswersReady((answers) => {
-    document.querySelectorAll(".quiz").forEach((quizEl) => {
-      const qid = quizEl.dataset.questionId;
-      if (answers[qid] && quizEl.dataset.answered !== "true") {
-        quizEl.dataset.answered = "true";
-        lockQuiz(quizEl, true);
-      }
-    });
-  });
-}
+});
