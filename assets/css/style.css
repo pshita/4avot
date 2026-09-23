@@ -205,6 +205,7 @@ button.dropdown-item {
   border-radius: 999px;
 }
 .auth-link-primary:hover { color: #fff; opacity: .9; }
+.auth-user-name { font-size: .85rem; color: var(--ink-soft); padding: 0 10px; }
 
 .auth-form {
   display: flex;
@@ -269,7 +270,7 @@ button.dropdown-item {
 .breadcrumbs a:hover { text-decoration: underline; }
 
 /* ===== Lesson cards (index) ===== */
-.group-title-dropdown { margin: 30px 0 60px; }
+.group-title-dropdown { margin: 0 0 10px; }
 /* One bordered panel per page-group: the title bar spans its full width,
    and when open, the lessons sit inside that same frame below it -
    containment shows they belong to and open from this group. Works for
@@ -305,8 +306,8 @@ button.dropdown-item {
 .lesson-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 18px;
-  padding: 20px;
+  gap: 8px;
+  padding: 12px;
 }
 .lesson-card {
   background: var(--bg-elevated);

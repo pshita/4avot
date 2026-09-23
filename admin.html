@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=40" />
+  <link rel="stylesheet" href="assets/css/style.css?v=41" />
   <style>
     .admin-wrap { max-width: 780px; margin: 0 auto; padding: 28px 20px 60px; }
     .admin-wrap h1 { font-size: 1.6rem; margin: 0 0 4px; }
@@ -19,7 +19,6 @@
       gap: 10px;
       margin-bottom: 20px;
     }
-    .dirty-count { font-size: .88rem; color: var(--ink-soft); }
     .toolbar-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .btn {
       font-family: inherit;
@@ -36,7 +35,11 @@
     .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
     .btn-primary:hover { opacity: .9; }
     .btn:disabled { opacity: .4; cursor: default; }
-    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .tabs-group-sep { align-self: stretch; width: 1px; background: var(--line); margin: 2px 2px; }
+    .lesson-order-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+    .lesson-order-controls .order-label { font-size: .86rem; color: var(--ink-soft); }
+    .lesson-order-controls .order-status { font-size: .82rem; color: var(--ink-soft); }
     #btn-new-lesson { margin-bottom: 22px; }
     .new-lesson-form {
       background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
@@ -45,6 +48,11 @@
     .new-lesson-form .field { margin-bottom: 14px; }
     .new-lesson-form label { display: block; font-size: .82rem; color: var(--ink-soft); margin-bottom: 5px; }
     #new-lesson-id { direction: ltr; text-align: left; }
+    #new-lesson-after {
+      width: 100%; font-family: inherit; font-size: .92rem; color: var(--ink);
+      background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+      padding: 9px 12px; direction: rtl;
+    }
     .new-lesson-actions { display: flex; gap: 8px; }
     .new-lesson-status { margin: 10px 0 0; font-size: .85rem; }
     .new-lesson-status.status-error { color: #b23b3b; }
@@ -197,13 +205,18 @@
 
     <div id="admin-main" hidden>
       <div class="toolbar">
-        <span class="dirty-count" id="dirty-count">מחובר/ת</span>
         <div class="toolbar-actions">
           <span class="save-status" id="save-status"></span>
         </div>
       </div>
 
       <div class="tabs" id="tabs"></div>
+      <div class="lesson-order-controls" id="lesson-order-controls">
+        <span class="order-label">סדר השיעור בדף:</span>
+        <button type="button" class="ctrl-btn" id="btn-move-up" title="הזזה למעלה ברשימה">▲</button>
+        <button type="button" class="ctrl-btn" id="btn-move-down" title="הזזה למטה ברשימה">▼</button>
+        <span class="order-status" id="move-lesson-status"></span>
+      </div>
       <button type="button" class="btn" id="btn-new-lesson">+ שיעור חדש</button>
       <div class="new-lesson-form" id="new-lesson-form" hidden>
         <div class="field">
@@ -217,6 +230,12 @@
         <div class="field">
           <label for="new-lesson-source">דף ועמוד</label>
           <input type="text" id="new-lesson-source" placeholder="לדוגמה: דף ב, עמוד א">
+        </div>
+        <div class="field">
+          <label for="new-lesson-after">מיקום בדף (אופציונלי - כדי להוסיף בין שיעורים קיימים)</label>
+          <select id="new-lesson-after">
+            <option value="">בסוף הדף</option>
+          </select>
         </div>
         <div class="new-lesson-actions">
           <button type="button" class="btn btn-primary" id="btn-create-lesson">צור שיעור</button>
@@ -235,23 +254,23 @@
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
     import { parseLessonHtml } from "./assets/js/lesson-parser.js";
 
-    var LESSON_ORDER = ["avot-vetoldot", "shor-umave", "lo-hari-hashor", "gabei-shabbat-tanan", "umai-ika", "gabei-tumaot-tanan"];
-    var LESSON_LABELS = {"avot-vetoldot": "אבות נזיקין", "shor-umave": "השור, הבור, המבעה וההבער", "lo-hari-hashor": "לא הרי השור כהרי המבעה", "gabei-shabbat-tanan": "גבי שבת תנן", "umai-ika": "ומאי איכא בין אב לתולדה", "gabei-tumaot-tanan": "גבי טומאות תנן"};
+    // The lesson order/labels/grouping all come live from index.html (see
+    // refreshLessonOrder below) rather than being hardcoded here, so a
+    // lesson created or reordered from anywhere (this panel, another admin
+    // session) always shows up without a code change.
+    var LESSON_ORDER = [];
+    var LESSON_LABELS = {};
 
     (function () {
       var lessonData = {}; // lid -> { titleText, blocks } | null (not loaded yet)
       var saveState = {};  // lid -> "idle" | "pending" | "saving" | "saved" | "error"
-      LESSON_ORDER.forEach(function (lid) {
-        lessonData[lid] = null;
-        saveState[lid] = "idle";
-      });
+      var groupsData = []; // [{ title, lessons: [{id, title}] }] - live from index.html
 
-      var currentLesson = LESSON_ORDER[0];
+      var currentLesson = null;
       var authGateEl = document.getElementById("auth-gate");
       var adminMainEl = document.getElementById("admin-main");
       var tabsEl = document.getElementById("tabs");
       var contentEl = document.getElementById("content");
-      var dirtyCountEl = document.getElementById("dirty-count");
       var saveStatusEl = document.getElementById("save-status");
       var btnLogout = document.getElementById("btn-logout");
       var btnNewLesson = document.getElementById("btn-new-lesson");
@@ -259,13 +278,18 @@
       var newLessonIdInput = document.getElementById("new-lesson-id");
       var newLessonTitleInput = document.getElementById("new-lesson-title");
       var newLessonSourceInput = document.getElementById("new-lesson-source");
+      var newLessonAfterSelect = document.getElementById("new-lesson-after");
       var btnCreateLesson = document.getElementById("btn-create-lesson");
       var btnCancelNewLesson = document.getElementById("btn-cancel-new-lesson");
       var newLessonStatusEl = document.getElementById("new-lesson-status");
+      var btnMoveUp = document.getElementById("btn-move-up");
+      var btnMoveDown = document.getElementById("btn-move-down");
+      var moveLessonStatusEl = document.getElementById("move-lesson-status");
       var saveTimers = {}; // lid -> pending debounce timer, one per lesson
       var bidSeq = 0;
       var saveFn = null;
       var createLessonFn = null;
+      var moveLessonFn = null;
 
       function newBid() {
         bidSeq++;
@@ -358,23 +382,69 @@
 
       function renderTabs() {
         tabsEl.innerHTML = "";
-        LESSON_ORDER.forEach(function (lid) {
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "tab" + (lid === currentLesson ? " active" : "");
-          var state = saveState[lid];
-          var dot = "";
-          if (state === "error") dot = '<span class="dot dot-error"></span>';
-          else if (state === "pending" || state === "saving") dot = '<span class="dot"></span>';
-          btn.innerHTML = LESSON_LABELS[lid] + dot;
-          btn.addEventListener("click", function () {
-            currentLesson = lid;
-            renderTabs();
-            renderContent();
+        groupsData.forEach(function (group, gi) {
+          if (gi > 0) {
+            var sep = document.createElement("span");
+            sep.className = "tabs-group-sep";
+            tabsEl.appendChild(sep);
+          }
+          group.lessons.forEach(function (l) {
+            var lid = l.id;
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "tab" + (lid === currentLesson ? " active" : "");
+            var state = saveState[lid];
+            var dot = "";
+            if (state === "error") dot = '<span class="dot dot-error"></span>';
+            else if (state === "pending" || state === "saving") dot = '<span class="dot"></span>';
+            btn.innerHTML = (LESSON_LABELS[lid] || lid) + dot;
+            btn.addEventListener("click", function () {
+              currentLesson = lid;
+              renderTabs();
+              renderContent();
+            });
+            tabsEl.appendChild(btn);
           });
-          tabsEl.appendChild(btn);
         });
+        updateMoveButtons();
       }
+
+      // Finds where `lid` sits within its own page-group, so the move
+      // buttons can be disabled at either end - reordering only ever
+      // happens within a group (see moveLesson in functions/index.js).
+      function lessonPositionInfo(lid) {
+        for (var gi = 0; gi < groupsData.length; gi++) {
+          var lessons = groupsData[gi].lessons;
+          for (var li = 0; li < lessons.length; li++) {
+            if (lessons[li].id === lid) return { indexInGroup: li, groupSize: lessons.length };
+          }
+        }
+        return null;
+      }
+
+      function updateMoveButtons() {
+        var info = lessonPositionInfo(currentLesson);
+        btnMoveUp.disabled = !info || info.indexInGroup === 0;
+        btnMoveDown.disabled = !info || info.indexInGroup === info.groupSize - 1;
+      }
+
+      function doMoveLesson(direction) {
+        if (!moveLessonFn || !currentLesson) return;
+        btnMoveUp.disabled = true;
+        btnMoveDown.disabled = true;
+        moveLessonStatusEl.textContent = "מעדכן…";
+        moveLessonFn({ lessonId: currentLesson, direction: direction })
+          .then(function () {
+            moveLessonStatusEl.textContent = "";
+            return refreshLessonOrder();
+          })
+          .catch(function (err) {
+            moveLessonStatusEl.textContent = (err && err.message) || "שינוי הסדר נכשל.";
+            updateMoveButtons();
+          });
+      }
+      btnMoveUp.addEventListener("click", function () { doMoveLesson("up"); });
+      btnMoveDown.addEventListener("click", function () { doMoveLesson("down"); });
 
       function autoGrow(ta) {
         ta.style.height = "auto";
@@ -851,9 +921,32 @@
           newLessonTitleInput.value = "";
           newLessonSourceInput.value = "";
           setNewLessonStatus(null, "");
+          renderNewLessonAfterOptions();
           newLessonIdInput.focus();
         }
       });
+
+      // The "insert after" options depend on which page-group the typed
+      // דף ועמוד matches - rebuilt every time that field changes so the
+      // choices always stay lessons that actually share that group.
+      function renderNewLessonAfterOptions() {
+        var sourceVal = newLessonSourceInput.value.trim();
+        var group = groupsData.find(function (g) { return g.title === sourceVal; });
+        newLessonAfterSelect.innerHTML = "";
+        var defaultOpt = document.createElement("option");
+        defaultOpt.value = "";
+        defaultOpt.textContent = "בסוף הדף";
+        newLessonAfterSelect.appendChild(defaultOpt);
+        if (group) {
+          group.lessons.forEach(function (l) {
+            var opt = document.createElement("option");
+            opt.value = l.id;
+            opt.textContent = "אחרי: " + l.title;
+            newLessonAfterSelect.appendChild(opt);
+          });
+        }
+      }
+      newLessonSourceInput.addEventListener("input", renderNewLessonAfterOptions);
 
       btnCancelNewLesson.addEventListener("click", function () {
         newLessonFormEl.hidden = true;
@@ -882,30 +975,28 @@
           setNewLessonStatus("error", "צריך לציין על איזה דף ועמוד השיעור.");
           return;
         }
+        var afterLessonId = newLessonAfterSelect.value || null;
         btnCreateLesson.disabled = true;
         setNewLessonStatus("saving", "יוצר שיעור…");
-        createLessonFn({ lessonId: lessonId, titleText: titleText, sourceText: sourceText })
+        createLessonFn({ lessonId: lessonId, titleText: titleText, sourceText: sourceText, afterLessonId: afterLessonId })
           .then(function () {
-            LESSON_ORDER.push(lessonId);
-            LESSON_LABELS[lessonId] = titleText;
-            lessonData[lessonId] = null;
-            saveState[lessonId] = "idle";
             btnCreateLesson.disabled = false;
             newLessonFormEl.hidden = true;
             currentLesson = lessonId;
+            return refreshLessonOrder();
+          })
+          .then(function () {
             renderTabs();
             renderContent();
-            return loadLesson(lessonId).then(function () {
-              renderTabs();
-              renderContent();
-            });
+            return loadLesson(lessonId);
+          })
+          .then(function () {
+            renderTabs();
+            renderContent();
           })
           .catch(function (err) {
             btnCreateLesson.disabled = false;
             setNewLessonStatus("error", (err && err.message) || "יצירת השיעור נכשלה.");
-          })
-          .then(function () {
-            refreshLessonPicker();
           });
       });
 
@@ -937,11 +1028,13 @@
       wireDropdownToggle(brandTrigger, brandMenu);
       wireSubmenuToggle(lessonPickerTrigger, lessonPickerPanel);
 
-      // Grouped "which lesson" picker in the header, matching the home
-      // page's own page/amud groups - read live from index.html so it never
-      // drifts from what's actually there, including lessons created this
-      // session or a moment ago from somewhere else.
-      function refreshLessonPicker() {
+      // Single source of truth for lesson order/grouping: read live from
+      // index.html (so it never drifts from what's actually there - a
+      // lesson created or reordered from this panel, another admin session,
+      // or a moment ago from somewhere else all show up the same way), then
+      // refresh everything that depends on it: the header's lesson picker,
+      // the tabs bar, and the "insert after" choices in the new-lesson form.
+      function refreshLessonOrder() {
         return fetch("index.html", { cache: "no-store" })
           .then(function (res) { return res.text(); })
           .then(function (html) {
@@ -958,9 +1051,27 @@
               });
               groups.push({ title: titleEl ? titleEl.textContent.trim() : "", lessons: lessons });
             });
+
+            groupsData = groups;
+            LESSON_ORDER = [];
+            LESSON_LABELS = {};
+            groups.forEach(function (group) {
+              group.lessons.forEach(function (l) {
+                LESSON_ORDER.push(l.id);
+                LESSON_LABELS[l.id] = l.title;
+                if (!(l.id in lessonData)) {
+                  lessonData[l.id] = null;
+                  saveState[l.id] = "idle";
+                }
+              });
+            });
+            if (!currentLesson && LESSON_ORDER.length) currentLesson = LESSON_ORDER[0];
+
             renderLessonPicker(groups);
+            renderNewLessonAfterOptions();
+            renderTabs();
           })
-          .catch(function () { /* best-effort: picker just stays empty */ });
+          .catch(function () { /* best-effort: order just stays as it was */ });
       }
 
       function renderLessonPicker(groups) {
@@ -1000,14 +1111,15 @@
           if (user) {
             authGateEl.hidden = true;
             adminMainEl.hidden = false;
-            dirtyCountEl.textContent = user.displayName ? "מחובר/ת: " + user.displayName : "מחובר/ת";
             var functions = getFunctions(getApp());
             saveFn = httpsCallable(functions, "saveLessonContent");
             createLessonFn = httpsCallable(functions, "createLesson");
-            renderTabs();
+            moveLessonFn = httpsCallable(functions, "moveLesson");
             renderContent();
-            refreshLessonPicker();
-            loadAll().then(function () {
+            refreshLessonOrder().then(function () {
+              renderContent();
+              return loadAll();
+            }).then(function () {
               renderTabs();
               renderContent();
             });

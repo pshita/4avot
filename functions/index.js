@@ -277,6 +277,17 @@ function submenuLinksHtml(entries, hrefPrefix) {
     .join("\n");
 }
 
+// Renders a lesson's prev/next nav div for a given position in the full
+// site-wide lesson order. Matches the three shapes already in use: "single"
+// with only a next button (first lesson ever), "single" with only a prev
+// button (last lesson ever), or both buttons (everyone else).
+function renderLessonNavHtml(prevId, nextId) {
+  const single = !prevId || !nextId;
+  const prevBtn = prevId ? `<a class="lesson-nav-btn lesson-nav-btn--secondary" href="${prevId}.html">לשיעור הקודם</a>\n      ` : "";
+  const nextBtn = nextId ? `<a class="lesson-nav-btn" href="${nextId}.html">לשיעור הבא</a>\n    ` : "";
+  return `<div class="lesson-nav${single ? " single" : ""}">\n      ${prevBtn}${nextBtn}</div>`;
+}
+
 function renderNewLessonHtml({ lessonId, titleText, sourceText, prevId, allEntries }) {
   const title = escapeHtml(titleText);
   const source = escapeHtml(sourceText);
@@ -287,7 +298,7 @@ function renderNewLessonHtml({ lessonId, titleText, sourceText, prevId, allEntri
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
   <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&amp;family=Heebo:wght@300;400;600&amp;family=Rubik:wght@500;600;700;800;900&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/css/style.css?v=39">
+  <link rel="stylesheet" href="../assets/css/style.css?v=41">
 </head>
 <body>
   <header class="site-header">
@@ -312,6 +323,8 @@ ${submenuLinksHtml(allEntries, "")}
           </div>
           <div class="auth-area" id="auth-area-in" hidden="">
             <span class="score-badge" id="score-badge" hidden=""></span>
+            <span class="auth-user-name" id="auth-user-name"></span>
+            <a class="dropdown-item" href="../admin.html" id="admin-panel-link" hidden="">פאנל עריכה</a>
             <button type="button" class="auth-link auth-link-primary" id="logout-btn">התנתקות</button>
           </div>
         </div>
@@ -327,15 +340,13 @@ ${submenuLinksHtml(allEntries, "")}
 
     <div class="intro-box"><p class="p-light">כאן יופיע תוכן השיעור.</p></div>
 
-    <div class="lesson-nav single">
-      <a class="lesson-nav-btn lesson-nav-btn--secondary" href="${prevId}.html">לשיעור הקודם</a>
-    </div>
+    ${renderLessonNavHtml(prevId, null)}
   </main>
 
   <footer class="site-footer"></footer>
 
   <script src="../assets/js/main.js?v=2"></script>
-  <script type="module" src="../assets/js/header-auth.js"></script>
+  <script type="module" src="../assets/js/header-auth.js?v=1"></script>
   <script type="module" src="../assets/js/score.js"></script>
   <script type="module" src="../assets/js/quiz.js?v=12"></script>
 
@@ -363,39 +374,142 @@ function renderNewGroupPanelHtml(sourceText, lessonId, titleText) {
 }
 
 // Reads index.html's lesson grid(s) - the source of truth for every existing
-// lesson's id, title and which page-group (e.g. "דף ב, עמוד א") it belongs
-// to - so none of this needs to live in this file's own code.
-function readLessonEntries($index) {
-  const entries = [];
+// lesson's id, title, order and which page-group (e.g. "דף ב, עמוד א") it
+// belongs to - so none of this needs to live in this file's own code.
+// `panelEl` is the live cheerio node for that group's .group-panel (present
+// only for groups that already exist in $index; a newly-created group is
+// pushed onto the array without one, and gets it filled in once its panel
+// markup is inserted).
+function readLessonGroups($index) {
+  const groups = [];
   $index(".group-panel").each((i, panel) => {
     const $panel = $index(panel);
-    const groupTitle = $panel.find(".group-title span").first().text().trim();
+    const title = $panel.find(".group-title span").first().text().trim();
+    const entries = [];
     $panel.find(".lesson-card").each((j, card) => {
       const $card = $index(card);
       const href = $card.attr("href") || "";
       const m = href.match(/^lessons\/([a-z0-9-]+)\.html$/);
-      if (m) entries.push({ id: m[1], title: $card.find("h3").text().trim(), group: groupTitle });
+      if (m) entries.push({ id: m[1], title: $card.find("h3").text().trim() });
     });
+    groups.push({ title, entries, panelEl: $panel });
   });
-  return entries;
+  return groups;
 }
 
-async function createLessonFiles({ lessonId, titleText, sourceText, token }) {
+function flattenGroups(groups) {
+  const out = [];
+  groups.forEach((g) => g.entries.forEach((e) => out.push(e)));
+  return out;
+}
+
+// Rewrites every page so its lesson cards, submenu and (for lesson pages)
+// prev/next nav all match `groups`' order. Used both for inserting a lesson
+// at an arbitrary position and for reordering existing ones - either way,
+// the full site-wide order can change, so every page needs a fresh pass
+// rather than a patch targeted at just the two lessons that moved.
+async function rebuildAllPagesForOrder({ $index, indexCurrent, groups, token, commitMessage }) {
+  groups.forEach((g) => {
+    const cardsHtml = g.entries
+      .map((e) => `<a class="lesson-card" href="lessons/${e.id}.html">\n            <h3>${escapeHtml(e.title)}</h3>\n          </a>`)
+      .join("\n          ");
+    g.panelEl.find(".lesson-grid").html(`\n          ${cardsHtml}\n        `);
+  });
+
+  const fullOrder = flattenGroups(groups);
+
+  $index(".submenu-panel").html(`\n${submenuLinksHtml(fullOrder, "lessons/")}\n            `);
+  await githubRequest("contents/index.html", {
+    method: "PUT",
+    token,
+    body: {
+      message: commitMessage,
+      content: Buffer.from($index.html(), "utf8").toString("base64"),
+      sha: indexCurrent.sha,
+      branch: REPO_BRANCH,
+    },
+  });
+
+  for (const page of ["login.html", "register.html"]) {
+    const path = `contents/${page}`;
+    const current = await githubRequest(`${path}?ref=${REPO_BRANCH}`, { token });
+    const html = Buffer.from(current.content, "base64").toString("utf8");
+    const $ = cheerio.load(html);
+    $(".submenu-panel").html(`\n${submenuLinksHtml(fullOrder, "lessons/")}\n            `);
+    await githubRequest(path, {
+      method: "PUT",
+      token,
+      body: {
+        message: commitMessage,
+        content: Buffer.from($.html(), "utf8").toString("base64"),
+        sha: current.sha,
+        branch: REPO_BRANCH,
+      },
+    });
+  }
+
+  for (let i = 0; i < fullOrder.length; i++) {
+    const entry = fullOrder[i];
+    const prevEntry = i > 0 ? fullOrder[i - 1] : null;
+    const nextEntry = i < fullOrder.length - 1 ? fullOrder[i + 1] : null;
+    const path = `contents/lessons/${entry.id}.html`;
+    const current = await githubRequest(`${path}?ref=${REPO_BRANCH}`, { token });
+    const html = Buffer.from(current.content, "base64").toString("utf8");
+    const $ = cheerio.load(html);
+    $(".submenu-panel").html(`\n${submenuLinksHtml(fullOrder, "")}\n            `);
+    $(".lesson-nav").replaceWith(renderLessonNavHtml(prevEntry ? prevEntry.id : null, nextEntry ? nextEntry.id : null));
+    await githubRequest(path, {
+      method: "PUT",
+      token,
+      body: {
+        message: commitMessage,
+        content: Buffer.from($.html(), "utf8").toString("base64"),
+        sha: current.sha,
+        branch: REPO_BRANCH,
+      },
+    });
+  }
+}
+
+async function createLessonFiles({ lessonId, titleText, sourceText, afterLessonId, token }) {
   const quotedTitle = quoteTitle(titleText);
+  const trimmedSource = sourceText.trim();
 
   const indexPath = "contents/index.html";
   const indexCurrent = await githubRequest(`${indexPath}?ref=${REPO_BRANCH}`, { token });
   const indexHtml = Buffer.from(indexCurrent.content, "base64").toString("utf8");
   const $index = cheerio.load(indexHtml);
 
-  const existingEntries = readLessonEntries($index);
-  if (!existingEntries.length) throw new Error("No existing lessons found in index.html");
-  const prevId = existingEntries[existingEntries.length - 1].id;
-  const allEntries = existingEntries.concat([{ id: lessonId, title: quotedTitle }]);
+  const groups = readLessonGroups($index);
+  if (!groups.length) throw new Error("No existing lessons found in index.html");
+  const flatBefore = flattenGroups(groups);
+  const prevId = flatBefore[flatBefore.length - 1].id;
 
-  // 1) Create the new lesson file first - if a later step fails, the site
-  // ends up with an unlinked page rather than a link to a missing one.
-  const newHtml = renderNewLessonHtml({ lessonId, titleText: quotedTitle, sourceText, prevId, allEntries });
+  let targetGroup = groups.find((g) => g.title === trimmedSource);
+  const isNewGroup = !targetGroup;
+  if (isNewGroup) {
+    targetGroup = { title: trimmedSource, entries: [], panelEl: null };
+    groups.push(targetGroup);
+  }
+
+  if (afterLessonId && !targetGroup.entries.some((e) => e.id === afterLessonId)) {
+    throw new Error("מיקום ההוספה לא נמצא באותו דף ועמוד.");
+  }
+
+  const newEntry = { id: lessonId, title: quotedTitle };
+  if (afterLessonId) {
+    const idx = targetGroup.entries.findIndex((e) => e.id === afterLessonId);
+    targetGroup.entries.splice(idx + 1, 0, newEntry);
+  } else {
+    targetGroup.entries.push(newEntry);
+  }
+
+  // 1) Create the new lesson file first (placeholder prev/submenu - the
+  // rebuild pass below fixes it to its real, possibly non-last, position).
+  // If a later step fails, the site ends up with an unlinked page rather
+  // than a link to a missing one.
+  const allEntries = flattenGroups(groups);
+  const newHtml = renderNewLessonHtml({ lessonId, titleText: quotedTitle, sourceText: trimmedSource, prevId, allEntries });
   await githubRequest(`contents/lessons/${lessonId}.html`, {
     method: "PUT",
     token,
@@ -406,92 +520,23 @@ async function createLessonFiles({ lessonId, titleText, sourceText, token }) {
     },
   });
 
-  // 2) Give the previous last lesson a "next" link to the new one, and add
-  // the new lesson to its own submenu too.
-  const prevPath = `contents/lessons/${prevId}.html`;
-  const prevCurrent = await githubRequest(`${prevPath}?ref=${REPO_BRANCH}`, { token });
-  const prevHtml = Buffer.from(prevCurrent.content, "base64").toString("utf8");
-  const $prev = cheerio.load(prevHtml);
-  const $prevNav = $prev(".lesson-nav");
-  $prevNav.removeClass("single");
-  $prevNav.find("a.lesson-nav-btn:not(.lesson-nav-btn--secondary)").remove();
-  $prevNav.append(`<a class="lesson-nav-btn" href="${lessonId}.html">לשיעור הבא</a>`);
-  $prev(".submenu-panel").append(`\n${submenuLinksHtml([{ id: lessonId, title: quotedTitle }], "")}\n            `);
-  await githubRequest(prevPath, {
-    method: "PUT",
+  // 2) A brand new page-group needs its panel markup inserted into
+  // index.html before the rebuild pass can fill its lesson-grid.
+  if (isNewGroup) {
+    $index("main.wrap").append(renderNewGroupPanelHtml(trimmedSource, lessonId, quotedTitle));
+    targetGroup.panelEl = $index(".group-panel").filter(
+      (i, panel) => $index(panel).find(".group-title span").first().text().trim() === trimmedSource
+    ).first();
+  }
+
+  // 3) Rewrite every page (cards, submenus, nav) to match the final order.
+  await rebuildAllPagesForOrder({
+    $index,
+    indexCurrent,
+    groups,
     token,
-    body: {
-      message: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
-      content: Buffer.from($prev.html(), "utf8").toString("base64"),
-      sha: prevCurrent.sha,
-      branch: REPO_BRANCH,
-    },
+    commitMessage: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
   });
-
-  // 3) Add the new lesson to its page-group on the home page - the existing
-  // group if sourceText matches one, otherwise a brand new group panel -
-  // and update the home page's own submenu.
-  const matchingGroup = $index(".group-panel").filter((i, panel) =>
-    $index(panel).find(".group-title span").first().text().trim() === sourceText.trim()
-  ).first();
-  if (matchingGroup.length) {
-    matchingGroup.find(".lesson-grid").append(
-      `<a class="lesson-card" href="lessons/${lessonId}.html">\n            <h3>${escapeHtml(quotedTitle)}</h3>\n          </a>\n          `
-    );
-  } else {
-    $index("main.wrap").append(renderNewGroupPanelHtml(sourceText, lessonId, quotedTitle));
-  }
-  $index(".submenu-panel").append(`\n${submenuLinksHtml([{ id: lessonId, title: quotedTitle }], "lessons/")}\n            `);
-  await githubRequest(indexPath, {
-    method: "PUT",
-    token,
-    body: {
-      message: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
-      content: Buffer.from($index.html(), "utf8").toString("base64"),
-      sha: indexCurrent.sha,
-      branch: REPO_BRANCH,
-    },
-  });
-
-  // 4) Update every other page's submenu: the two auth pages, and every
-  // existing lesson file besides the one already handled in step 2.
-  const otherRootPages = ["login.html", "register.html"];
-  for (const page of otherRootPages) {
-    const path = `contents/${page}`;
-    const current = await githubRequest(`${path}?ref=${REPO_BRANCH}`, { token });
-    const html = Buffer.from(current.content, "base64").toString("utf8");
-    const $ = cheerio.load(html);
-    $(".submenu-panel").append(`\n${submenuLinksHtml([{ id: lessonId, title: quotedTitle }], "lessons/")}\n            `);
-    await githubRequest(path, {
-      method: "PUT",
-      token,
-      body: {
-        message: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
-        content: Buffer.from($.html(), "utf8").toString("base64"),
-        sha: current.sha,
-        branch: REPO_BRANCH,
-      },
-    });
-  }
-
-  for (const entry of existingEntries) {
-    if (entry.id === prevId) continue;
-    const path = `contents/lessons/${entry.id}.html`;
-    const current = await githubRequest(`${path}?ref=${REPO_BRANCH}`, { token });
-    const html = Buffer.from(current.content, "base64").toString("utf8");
-    const $ = cheerio.load(html);
-    $(".submenu-panel").append(`\n${submenuLinksHtml([{ id: lessonId, title: quotedTitle }], "")}\n            `);
-    await githubRequest(path, {
-      method: "PUT",
-      token,
-      body: {
-        message: `הוספת שיעור חדש: ${lessonId} (דרך פאנל הניהול)`,
-        content: Buffer.from($.html(), "utf8").toString("base64"),
-        sha: current.sha,
-        branch: REPO_BRANCH,
-      },
-    });
-  }
 }
 
 exports.createLesson = onCall({ secrets: [GITHUB_TOKEN] }, async (request) => {
@@ -499,7 +544,7 @@ exports.createLesson = onCall({ secrets: [GITHUB_TOKEN] }, async (request) => {
     throw new HttpsError("permission-denied", "אין הרשאה לערוך תוכן באתר.");
   }
 
-  const { lessonId, titleText, sourceText } = request.data || {};
+  const { lessonId, titleText, sourceText, afterLessonId } = request.data || {};
   if (!isValidLessonId(lessonId)) {
     throw new HttpsError("invalid-argument", "מזהה שיעור לא תקין (אותיות אנגליות קטנות, ספרות ומקפים בלבד).");
   }
@@ -509,6 +554,9 @@ exports.createLesson = onCall({ secrets: [GITHUB_TOKEN] }, async (request) => {
   if (typeof sourceText !== "string" || !sourceText.trim()) {
     throw new HttpsError("invalid-argument", "צריך לציין על איזה דף ועמוד השיעור.");
   }
+  if (afterLessonId !== undefined && afterLessonId !== null && !isValidLessonId(afterLessonId)) {
+    throw new HttpsError("invalid-argument", "מיקום הוספה לא תקין.");
+  }
 
   const token = GITHUB_TOKEN.value();
   if (await fileExists(`contents/lessons/${lessonId}.html`, token)) {
@@ -516,10 +564,69 @@ exports.createLesson = onCall({ secrets: [GITHUB_TOKEN] }, async (request) => {
   }
 
   try {
-    await createLessonFiles({ lessonId, titleText: titleText.trim(), sourceText: sourceText.trim(), token });
+    await createLessonFiles({
+      lessonId,
+      titleText: titleText.trim(),
+      sourceText: sourceText.trim(),
+      afterLessonId: afterLessonId || null,
+      token,
+    });
     return { ok: true, lessonId };
   } catch (err) {
     logger.error(`createLesson failed for ${lessonId}`, err);
-    throw new HttpsError("internal", "יצירת השיעור נכשלה. נסו שוב.");
+    throw new HttpsError("internal", err.message || "יצירת השיעור נכשלה. נסו שוב.");
+  }
+});
+
+// Swaps a lesson with its neighbor within its own page-group (the same
+// "דף ועמוד" it's already listed under) - moving it across groups isn't
+// supported, since that would mean re-deciding which group it belongs to.
+async function moveLessonFiles({ lessonId, direction, token }) {
+  const indexPath = "contents/index.html";
+  const indexCurrent = await githubRequest(`${indexPath}?ref=${REPO_BRANCH}`, { token });
+  const indexHtml = Buffer.from(indexCurrent.content, "base64").toString("utf8");
+  const $index = cheerio.load(indexHtml);
+
+  const groups = readLessonGroups($index);
+  const group = groups.find((g) => g.entries.some((e) => e.id === lessonId));
+  if (!group) throw new Error("השיעור לא נמצא.");
+
+  const idx = group.entries.findIndex((e) => e.id === lessonId);
+  if (direction === "up") {
+    if (idx <= 0) throw new Error("השיעור כבר ראשון ברשימה.");
+    [group.entries[idx - 1], group.entries[idx]] = [group.entries[idx], group.entries[idx - 1]];
+  } else {
+    if (idx >= group.entries.length - 1) throw new Error("השיעור כבר אחרון ברשימה.");
+    [group.entries[idx + 1], group.entries[idx]] = [group.entries[idx], group.entries[idx + 1]];
+  }
+
+  await rebuildAllPagesForOrder({
+    $index,
+    indexCurrent,
+    groups,
+    token,
+    commitMessage: `שינוי סדר שיעורים: ${lessonId} (דרך פאנל הניהול)`,
+  });
+}
+
+exports.moveLesson = onCall({ secrets: [GITHUB_TOKEN] }, async (request) => {
+  if (!request.auth || request.auth.token.email !== ALLOWED_EMAIL) {
+    throw new HttpsError("permission-denied", "אין הרשאה לערוך תוכן באתר.");
+  }
+
+  const { lessonId, direction } = request.data || {};
+  if (!isValidLessonId(lessonId)) {
+    throw new HttpsError("invalid-argument", "שיעור לא מוכר.");
+  }
+  if (direction !== "up" && direction !== "down") {
+    throw new HttpsError("invalid-argument", "כיוון לא תקין.");
+  }
+
+  try {
+    await moveLessonFiles({ lessonId, direction, token: GITHUB_TOKEN.value() });
+    return { ok: true };
+  } catch (err) {
+    logger.error(`moveLesson failed for ${lessonId}`, err);
+    throw new HttpsError("internal", err.message || "שינוי הסדר נכשל. נסו שוב.");
   }
 });
