@@ -382,8 +382,17 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   display: grid;
   gap: 14px;
 }
-@media (min-width: 640px) {
-  .example.with-media { grid-template-columns: 1.3fr 1fr; align-items: start; }
+/* Media stacks under the text at every width, matching the text's own
+   column instead of squeezing into a narrower side-by-side column. */
+.example.with-media .media-slot,
+.example.with-media .media-slot img,
+.example.with-media .media-slot video {
+  width: 100%;
+}
+.example.with-media .media-slot img,
+.example.with-media .media-slot video {
+  height: auto;
+  display: block;
 }
 .example h4 {
   margin: 0 0 6px;
