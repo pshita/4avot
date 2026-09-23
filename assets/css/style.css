@@ -478,9 +478,14 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
    tinted background and horizontal extent, its own bottom margin zeroed
    out (the paragraph's top margin is already 0) so the two sit flush with
    no color break between them. The heading's usual top margin is left
-   alone, so spacing above the band is unaffected. */
+   alone, so spacing above the band is unaffected. Some lessons still wrap
+   their paragraphs in a legacy .cgroup div (from an earlier version of the
+   site) instead of the heading being directly followed by the <p> - the
+   second selector in each pair catches that case too. */
 .intro-box h2:has(+ .p-strong),
-.intro-box h3:has(+ .p-strong) {
+.intro-box h3:has(+ .p-strong),
+.intro-box h2:has(+ .cgroup > .p-strong:first-child),
+.intro-box h3:has(+ .cgroup > .p-strong:first-child) {
   background: var(--accent-faint);
   padding-inline: 12px;
   margin-inline: -12px;
