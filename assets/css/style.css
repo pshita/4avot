@@ -256,19 +256,22 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   transition: transform .15s ease, border-color .15s ease;
 }
 .lesson-card:hover { transform: translateY(-3px); filter: brightness(1.06); }
-.lesson-card h3 { font-size: 1.15rem; color: #fff; }
+.lesson-card h3 { font-size: 1.15rem; }
 .lesson-card p { margin: 0; color: var(--ink-soft); font-size: .92rem; }
 .lesson-card .meta { font-size: .8rem; color: var(--ink-soft); }
 
-/* Each lesson gets its own color, cycling through the same 6 tones used
-   for the שן/רגל/בור/אש categories (plus two friends) - same card size and
-   layout as before, just a color identity per lesson. */
-.lesson-card:nth-child(6n+1) { background: var(--shen); border-color: var(--shen); }
-.lesson-card:nth-child(6n+2) { background: var(--regel); border-color: var(--regel); }
-.lesson-card:nth-child(6n+3) { background: var(--bor); border-color: var(--bor); }
-.lesson-card:nth-child(6n+4) { background: var(--esh); border-color: var(--esh); }
-.lesson-card:nth-child(6n+5) { background: var(--sun); border-color: var(--sun); }
-.lesson-card:nth-child(6n+6) { background: var(--sky); border-color: var(--sky); }
+/* One color (the site's own accent brown) stepping gradually darker from
+   the first lesson to the last, instead of a different hue per lesson -
+   same card size and layout as before. */
+.lesson-card:nth-child(6n+1) { background: #d9b8a3; border-color: #d9b8a3; }
+.lesson-card:nth-child(6n+2) { background: #c08f6f; border-color: #c08f6f; }
+.lesson-card:nth-child(6n+3) { background: #a5673f; border-color: #a5673f; }
+.lesson-card:nth-child(6n+4) { background: var(--accent); border-color: var(--accent); }
+.lesson-card:nth-child(6n+5) { background: var(--accent-strong); border-color: var(--accent-strong); }
+.lesson-card:nth-child(6n+6) { background: #4f2a18; border-color: #4f2a18; }
+.lesson-card:nth-child(6n+1) h3, .lesson-card:nth-child(6n+2) h3 { color: var(--ink); }
+.lesson-card:nth-child(6n+3) h3, .lesson-card:nth-child(6n+4) h3,
+.lesson-card:nth-child(6n+5) h3, .lesson-card:nth-child(6n+6) h3 { color: #fff; }
 
 /* ===== Lesson page ===== */
 .lesson-title-row {
