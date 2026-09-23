@@ -7,6 +7,7 @@
   --line: #e4d9c4;
   --accent: #8a4b2e;
   --accent-soft: #f1e3d1;
+  --accent-faint: color-mix(in srgb, var(--accent-soft) 45%, var(--bg-elevated) 55%);
   --accent-strong: #6d3a22;
   --shen: #a0522d;
   --regel: #6b7f3f;
@@ -451,7 +452,7 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
    stay in a muted ink tone. Neither uses bold weight. */
 .p-strong {
   font-weight: 400;
-  background: var(--accent-soft);
+  background: var(--accent-faint);
   padding-block: 10px;
   padding-inline: 12px;
 }
@@ -471,7 +472,7 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
    alone, so spacing above the band is unaffected. */
 .intro-box h2:has(+ .p-strong),
 .intro-box h3:has(+ .p-strong) {
-  background: var(--accent-soft);
+  background: var(--accent-faint);
   padding-inline: 12px;
   margin-inline: -12px;
   padding-block: 10px;
