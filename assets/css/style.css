@@ -275,36 +275,17 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   box-shadow: var(--shadow);
 }
 .intro-box h2 {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   margin-bottom: 16px;
   padding-bottom: 10px;
-  position: relative;
-}
-.intro-box h2::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  inset-inline-start: 0;
-  width: 46px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--accent);
+  border-bottom: 3px solid var(--accent);
 }
 .intro-box h3 {
-  font-size: 1rem;
+  font-size: 1.1rem;
   margin: 24px 0 10px;
   padding-bottom: 7px;
   color: var(--accent-strong);
-  position: relative;
-}
-.intro-box h3::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  inset-inline-start: 0;
-  width: 26px;
-  height: 2px;
-  background: color-mix(in srgb, var(--accent) 65%, transparent 35%);
+  border-bottom: 2px solid color-mix(in srgb, var(--accent) 65%, transparent 35%);
 }
 .intro-box h3:first-of-type { margin-top: 8px; }
 .intro-box p { margin: 0 0 10px; }
