@@ -231,38 +231,44 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
 .breadcrumbs a:hover { text-decoration: underline; }
 
 /* ===== Lesson cards (index) ===== */
-.group-title-dropdown { margin-top: 30px; }
+.group-title-dropdown { margin: 30px 0 60px; }
+/* One bordered panel per page-group: the title bar spans its full width,
+   and when open, the lessons sit inside that same frame below it -
+   containment shows they belong to and open from this group. Works for
+   any number of future groups (e.g. a second one for "עמוד ב"), each
+   getting its own panel. */
+.group-panel {
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
 .group-title {
-  display: inline-flex;
+  display: flex;
+  width: 100%;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   font-family: var(--font-head);
   font-weight: 700;
   font-size: 1.05rem;
-  color: var(--accent-strong);
-  background: var(--accent-soft);
-  border: 2px solid var(--accent);
-  border-radius: 999px;
-  padding: 10px 20px;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 0;
+  padding: 14px 20px;
 }
-.group-title:hover { background: var(--accent); color: #fff; }
+.group-title:hover { background: var(--accent-strong); }
 .group-arrow { width: 18px; height: 18px; flex: none; transition: transform .2s ease; }
 /* Closed groups point their arrow sideways instead of down, matching a
    typical accordion chevron. */
 .group-title-dropdown:has(.lessons-menu[hidden]) .group-arrow { transform: rotate(-90deg); }
 
-/* A small connector between a group's title and its lessons, so it reads
-   as "these lessons open from here" rather than a plain label followed by
-   an unrelated grid. Sits inside .lessons-menu so it hides along with the
-   grid when the group is collapsed. */
-.group-connector { display: flex; justify-content: center; color: var(--accent); opacity: .55; margin: 8px 0 2px; }
-.group-connector svg { width: 22px; height: 26px; }
-
 .lesson-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 18px;
-  padding: 10px 0 60px;
+  padding: 20px;
 }
 .lesson-card {
   background: var(--bg-elevated);
