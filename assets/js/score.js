@@ -7,16 +7,33 @@ let cachedAnswers = {};
 let currentUser = null;
 const listeners = [];
 
+const MILESTONE_STEP = 10;
+const MAX_BADGE_DOTS = 6; // most recent achieved milestones shown, plus one "next" dot
+
 function render() {
   const badge = document.getElementById("score-badge");
   if (!badge) return;
   const count = Object.values(cachedAnswers).filter(Boolean).length;
-  if (currentUser && count > 0) {
-    badge.textContent = `ניקוד: ${count}`;
-    badge.hidden = false;
-  } else {
+  if (!currentUser || count === 0) {
     badge.hidden = true;
+    return;
   }
+  badge.hidden = false;
+
+  const achieved = Math.floor(count / MILESTONE_STEP);
+  const currentBase = achieved * MILESTONE_STEP;
+  const progressPct = Math.round(((count - currentBase) / MILESTONE_STEP) * 100);
+
+  const shownAchieved = Math.min(achieved, MAX_BADGE_DOTS);
+  let dots = "";
+  for (let i = 0; i < shownAchieved; i++) dots += '<span class="score-badge-dot achieved"></span>';
+  dots += '<span class="score-badge-dot"></span>'; // next milestone, not yet reached
+
+  badge.innerHTML = `
+    <span class="score-badge-text">ניקוד: ${count}</span>
+    <span class="score-progress-track"><span class="score-progress-fill" style="width:${progressPct}%"></span></span>
+    <span class="score-badges">${dots}</span>
+  `;
 }
 
 export function getCachedAnswers() {

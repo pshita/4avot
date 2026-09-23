@@ -11,6 +11,25 @@ function lockQuiz(quizEl, revealCorrect) {
   });
 }
 
+const CONFETTI_COLORS = ["#a0522d", "#6b7f3f", "#3f6f7f", "#b23b2e", "#d99a2b", "#4a8fbd"];
+
+// A longer, more generous celebration than a quick flash - the correct
+// answer's feedback window is stretched to match (see FEEDBACK_MS below).
+function spawnConfetti(container) {
+  if (!container) return;
+  for (let i = 0; i < 24; i++) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+    piece.style.left = `${4 + Math.random() * 92}%`;
+    piece.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    const duration = 1.7 + Math.random() * 0.9;
+    piece.style.animationDuration = `${duration}s`;
+    piece.style.animationDelay = `${Math.random() * 0.35}s`;
+    container.appendChild(piece);
+    setTimeout(() => piece.remove(), (duration + 0.4) * 1000);
+  }
+}
+
 function markSectionDoneIfAny(quizEl) {
   const sectionId = quizEl.dataset.marksSection;
   if (!sectionId || !lessonId) return;
@@ -165,6 +184,7 @@ document.querySelectorAll(".quiz").forEach((quizEl) => {
       feedback.hidden = false;
       feedback.textContent = isCorrect ? "נכון!" : "לא נכון";
       feedback.className = "quiz-feedback " + (isCorrect ? "correct" : "incorrect");
+      if (isCorrect) spawnConfetti(quizEl.querySelector(".quiz-body"));
 
       const user = getCurrentQuizUser();
       if (isCorrect && user) {
@@ -182,7 +202,7 @@ document.querySelectorAll(".quiz").forEach((quizEl) => {
       setTimeout(() => {
         feedback.hidden = true;
         advanceQuizGroup(quizEl);
-      }, 1400);
+      }, isCorrect ? 2600 : 1400);
     });
   });
 });
