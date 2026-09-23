@@ -129,7 +129,7 @@
     }
     .inline-btn:hover { border-color: var(--accent); }
     .inline-btn-bold { font-weight: 700; }
-    .inline-btn-italic { font-style: italic; }
+    .inline-btn-content { background: var(--accent-soft); border-color: var(--accent); }
     .cg-styles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .cg-style-row {
       display: flex; align-items: center; gap: 4px;
@@ -411,7 +411,7 @@
         return card;
       }
 
-      var STYLE_OPTIONS = [["", "רגיל"], ["p-light", "רקע (בהיר)"], ["p-strong", "מודגש"]];
+      var STYLE_OPTIONS = [["", "רגיל"], ["p-light", "הקדמה"], ["p-strong", "תוכן"]];
 
       function buildStyleSelect(selectedCls) {
         var select = document.createElement("select");
@@ -462,7 +462,19 @@
         return true;
       }
 
-      function renderInlineToolbar(control) {
+      // Given the textarea's current selection, returns the [firstLine,
+      // lastLine] paragraph-item indices it touches (counting newlines up
+      // to each edge; a plain cursor with no selection still resolves to
+      // the one line it sits on).
+      function selectedLineRange(control) {
+        var head = control.value.slice(0, control.selectionStart);
+        var tail = control.value.slice(0, control.selectionEnd);
+        var first = (head.match(/\n/g) || []).length;
+        var last = (tail.match(/\n/g) || []).length;
+        return [first, last];
+      }
+
+      function renderInlineToolbar(control, block, lid, onStyleChange) {
         var bar = document.createElement("div");
         bar.className = "inline-toolbar";
         // Tapping a button normally moves focus to it first, which on many
@@ -482,18 +494,29 @@
         boldBtn.addEventListener("click", function () {
           if (wrapSelection(control, "**")) control.dispatchEvent(new Event("input", { bubbles: true }));
         });
-        var italicBtn = document.createElement("button");
-        italicBtn.type = "button";
-        italicBtn.className = "inline-btn inline-btn-italic";
-        italicBtn.textContent = "נטוי";
-        italicBtn.title = "סמנו טקסט בתיבה ואז לחצו כאן";
-        italicBtn.addEventListener("mousedown", preventFocusSteal);
-        italicBtn.addEventListener("pointerdown", preventFocusSteal);
-        italicBtn.addEventListener("click", function () {
-          if (wrapSelection(control, "_")) control.dispatchEvent(new Event("input", { bubbles: true }));
+        var contentBtn = document.createElement("button");
+        contentBtn.type = "button";
+        contentBtn.className = "inline-btn inline-btn-content";
+        contentBtn.textContent = "תוכן";
+        contentBtn.title = "מקמו את הסמן בפסקה (או סמנו כמה פסקאות) ואז לחצו כאן";
+        contentBtn.addEventListener("mousedown", preventFocusSteal);
+        contentBtn.addEventListener("pointerdown", preventFocusSteal);
+        contentBtn.addEventListener("click", function () {
+          var range = selectedLineRange(control);
+          var first = range[0], last = range[1];
+          if (first > last) { var t = first; first = last; last = t; }
+          var touched = block.items.slice(first, last + 1);
+          if (!touched.length) return;
+          var allContent = touched.every(function (p) { return p.cls === "p-strong"; });
+          for (var i = first; i <= last && i < block.items.length; i++) {
+            block.items[i].cls = allContent ? "" : "p-strong";
+          }
+          control.focus();
+          onStyleChange();
+          scheduleSave(lid);
         });
         bar.appendChild(boldBtn);
-        bar.appendChild(italicBtn);
+        bar.appendChild(contentBtn);
         return bar;
       }
 
@@ -509,7 +532,7 @@
         control.rows = 1;
         control.value = block.items.map(function (p) { return p.text; }).join("\n");
 
-        card.appendChild(renderInlineToolbar(control));
+        card.appendChild(renderInlineToolbar(control, block, lid, function () { renderStyleRows(); }));
 
         var stylesEl = document.createElement("div");
         stylesEl.className = "cg-styles";
