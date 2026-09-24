@@ -589,6 +589,25 @@ button.dropdown-item {
   margin-inline: -12px;
   padding-block: 10px;
   margin-bottom: 0;
+  border-start-start-radius: 8px;
+  border-start-end-radius: 8px;
+}
+/* Rounded corners on the band itself: only at its true start and end, not
+   at every paragraph's edge, so consecutive .p-strong paragraphs (and a
+   merged heading above them) still read as one continuous block rather
+   than a stack of separate pills. A paragraph is "the start" when nothing
+   above it is already part of the band (no .p-strong right before it, and
+   no merged heading - that case is handled by the rule above instead); a
+   paragraph is "the end" when no .p-strong immediately follows it. Either
+   can be true alone (rounding just that side) or both at once (a lone
+   paragraph with no neighbors, rounded on all four corners). */
+.intro-box .p-strong:not(.p-strong + .p-strong):not(h2 + .p-strong):not(h3 + .p-strong):not(.cgroup > .p-strong:first-child) {
+  border-start-start-radius: 8px;
+  border-start-end-radius: 8px;
+}
+.intro-box .p-strong:not(:has(+ .p-strong)) {
+  border-end-start-radius: 8px;
+  border-end-end-radius: 8px;
 }
 .p-light { color: var(--ink-soft); font-weight: 400; }
 
