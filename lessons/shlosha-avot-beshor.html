@@ -4,8 +4,8 @@
   <title>״ת"ר: ג' אבות נאמרו בשור״ | ארבעה אבות</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&amp;family=Heebo:wght@300;400;600&amp;family=Rubik:wght@500;600;700;800;900&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/css/style.css?v=42">
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&amp;family=Heebo:wght@300;400;600&amp;family=Rubik:wght@400;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css?v=43">
 </head>
 <body>
   <header class="site-header">
@@ -37,7 +37,7 @@
             <a class="auth-link auth-link-primary" href="../login.html">התחברות</a>
           </div>
           <div class="auth-area" id="auth-area-in" hidden="">
-            <span class="score-badge" id="score-badge" hidden=""></span>
+            <a class="score-badge" id="score-badge" href="../achievements.html" hidden=""></a>
             <span class="auth-user-name" id="auth-user-name"></span>
             <a class="dropdown-item" href="../admin.html" id="admin-panel-link" hidden="">פאנל עריכה</a>
             <button type="button" class="auth-link auth-link-primary" id="logout-btn">התנתקות</button>
@@ -45,6 +45,7 @@
         </div>
       </div>
     </div>
+    <div class="reading-progress" id="reading-progress"><span class="reading-progress-fill" id="reading-progress-fill"></span></div>
   </header>
 
   <main class="wrap" style="padding-top: 34px;">
@@ -65,6 +66,7 @@
   <footer class="site-footer"></footer>
 
   <script src="../assets/js/main.js?v=2"></script>
+  <script src="../assets/js/reading-progress.js"></script>
   <script type="module" src="../assets/js/header-auth.js?v=1"></script>
   <script type="module" src="../assets/js/score.js"></script>
   <script type="module" src="../assets/js/quiz.js?v=12"></script>

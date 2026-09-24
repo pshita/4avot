@@ -68,6 +68,15 @@ h1, h2, h3 { font-family: var(--font-head); color: var(--ink); margin: 0 0 .4em;
   padding-block: 14px;
   gap: 12px;
 }
+/* Thin reading-progress bar along the header's bottom edge - present in
+   every page's markup for one consistent header, but only ever filled in
+   by reading-progress.js on an actual lesson page (everywhere else it
+   just stays at 0% width, invisible). */
+.reading-progress { position: absolute; inset-inline: 0; bottom: -2px; height: 2px; background: transparent; }
+.reading-progress-fill { display: block; height: 100%; width: 0%; background: var(--accent); transition: width .1s linear; }
+@media (prefers-reduced-motion: reduce) {
+  .reading-progress-fill { transition: none; }
+}
 .brand {
   display: flex;
   align-items: center;
@@ -178,6 +187,19 @@ button.dropdown-item {
   box-shadow: none;
   padding: 0;
   display: block;
+}
+/* A CSS @keyframes animation (unlike a transition) plays on its own the
+   moment an element starts rendering - so removing [hidden] is enough to
+   trigger this, no JS or display-transition trickery needed. Only covers
+   the open direction (closing still snaps away instantly via [hidden]'s
+   display:none), which is what "opening animation" actually asks for. */
+@keyframes accordion-open {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.lessons-menu:not([hidden]) { animation: accordion-open .22s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .lessons-menu:not([hidden]) { animation: none; }
 }
 
 /* ===== Auth (login / register) ===== */
@@ -298,6 +320,19 @@ button.dropdown-item {
   padding: 14px 20px;
 }
 .group-title:hover { background: var(--accent-strong); }
+/* "X מתוך Y הושלמו" - filled in by homepage-progress.js once a logged-in
+   user's quiz answers are known. The auto margin hugs it (and the arrow
+   after it) against the end, leaving the title text at the start,
+   regardless of .group-title's own justify-content. */
+.group-progress {
+  font-size: .8rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, .22);
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-inline-start: auto;
+  white-space: nowrap;
+}
 .group-arrow { width: 18px; height: 18px; flex: none; transition: transform .2s ease; }
 /* Closed groups point their arrow sideways instead of down, matching a
    typical accordion chevron. */
@@ -310,6 +345,7 @@ button.dropdown-item {
   padding: 12px;
 }
 .lesson-card {
+  position: relative;
   background: var(--bg-elevated);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -326,6 +362,25 @@ button.dropdown-item {
 .lesson-card h3 { font-size: 1.15rem; }
 .lesson-card p { margin: 0; color: var(--ink-soft); font-size: .92rem; }
 .lesson-card .meta { font-size: .8rem; color: var(--ink-soft); }
+/* Filled in by homepage-progress.js once a logged-in user has answered
+   every quiz question in that lesson - same green already used for
+   .nezek-done and a correct quiz choice, so "done" reads consistently. */
+.lesson-card-done {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #eaf6ea;
+  color: #1b5e20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+}
 
 /* One color (the site's own accent brown) stepping gradually darker from
    the first lesson to the last, instead of a different hue per lesson -
@@ -612,6 +667,8 @@ button.dropdown-item {
 .p-light { color: var(--ink-soft); font-weight: 400; }
 
 /* ===== Score badge ===== */
+/* An <a> to achievements.html (see homepage-progress note above), so it
+   needs its own reset back to plain badge styling instead of a link's. */
 .score-badge {
   display: flex;
   flex-direction: column;
@@ -623,7 +680,10 @@ button.dropdown-item {
   padding: 8px 12px;
   border-radius: 14px;
   min-width: 150px;
+  text-decoration: none;
+  cursor: pointer;
 }
+.score-badge:hover { opacity: .9; }
 .score-badge-text { font-size: .85rem; }
 .score-progress-track {
   display: block;
@@ -650,6 +710,50 @@ button.dropdown-item {
 }
 .score-badge-dot.achieved { background: var(--esh); border-color: var(--esh); }
 
+/* ===== Achievements page ===== */
+.achv-total {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 26px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.achv-total-count { font-family: var(--font-head); font-size: 2.6rem; font-weight: 700; color: var(--accent-strong); }
+.achv-total-label { color: var(--ink-soft); font-size: .95rem; margin: 2px 0 16px; }
+.achv-track { height: 10px; border-radius: 999px; background: var(--accent-soft); overflow: hidden; margin-bottom: 8px; }
+.achv-track-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--sun), var(--esh));
+  transition: width .3s ease;
+}
+.achv-next { font-size: .85rem; color: var(--ink-soft); }
+.achv-milestones { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 18px; }
+
+.achv-group { margin-bottom: 26px; }
+.achv-group h2 { font-size: 1.1rem; margin-bottom: 10px; }
+.achv-lesson-list { display: flex; flex-direction: column; gap: 8px; }
+.achv-lesson-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: .92rem;
+}
+.achv-lesson-row:hover { border-color: var(--accent); }
+.achv-lesson-stat { font-weight: 600; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.achv-lesson-stat.complete { color: #1b5e20; }
+.loading-msg { color: var(--ink-soft); font-size: .9rem; padding: 20px 0; text-align: center; }
+
 /* ===== Quiz ===== */
 .quiz {
   background: var(--accent-soft);
@@ -670,7 +774,7 @@ button.dropdown-item {
   text-align: start;
   font-size: .95rem;
   font-weight: 600;
-  padding: 11px 16px;
+  padding: 13px 16px;
   border: 2px solid var(--line);
   border-radius: 14px;
   background: var(--bg-elevated);
@@ -678,6 +782,7 @@ button.dropdown-item {
   cursor: pointer;
   box-shadow: 0 3px 0 var(--line);
   transition: transform .08s ease, box-shadow .08s ease, border-color .15s ease;
+  min-height: 44px;
 }
 .quiz-choice:hover:not(:disabled) { border-color: var(--accent); }
 .quiz-choice:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
@@ -750,7 +855,11 @@ button.dropdown-item {
   gap: 12px;
   text-align: center;
   min-height: 40px;
-  background: linear-gradient(135deg, var(--sun), var(--esh));
+  /* The lighter end of the gradient is darkened just here (not in --sun
+     itself, which is used elsewhere at its normal brightness) - the plain
+     gold failed WCAG AA contrast (2.44:1) against the white title text;
+     this passes at ~4.7:1. */
+  background: linear-gradient(135deg, color-mix(in srgb, var(--sun) 70%, black), var(--esh));
   border-radius: 12px;
   padding: 14px 16px;
   margin: 18px 0;
@@ -831,8 +940,12 @@ footer.site-footer {
   border-radius: 999px;
   background: var(--accent);
   color: #fff;
+  transition: opacity .15s ease, transform .15s ease;
 }
-.lesson-nav-btn:hover { opacity: .9; }
+/* The site is RTL-only, so "next" (this button, not --secondary) always
+   sits visually on the left and "prev" on the right - each nudges a
+   little further the way it already points, on hover. */
+.lesson-nav-btn:hover { opacity: .9; transform: translateX(-4px); }
 .lesson-nav-btn--secondary {
   background: none;
   border: 1px solid var(--line);
@@ -840,6 +953,10 @@ footer.site-footer {
 }
 .lesson-nav-btn--secondary:hover {
   opacity: 1;
+  transform: translateX(4px);
   border-color: var(--accent);
   color: var(--accent-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-nav-btn:hover, .lesson-nav-btn--secondary:hover { transform: none; }
 }

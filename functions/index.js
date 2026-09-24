@@ -297,8 +297,8 @@ function renderNewLessonHtml({ lessonId, titleText, sourceText, prevId, allEntri
   <title>${title} | ארבעה אבות</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&amp;family=Heebo:wght@300;400;600&amp;family=Rubik:wght@500;600;700;800;900&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/css/style.css?v=42">
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&amp;family=Heebo:wght@300;400;600&amp;family=Rubik:wght@400;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css?v=43">
 </head>
 <body>
   <header class="site-header">
@@ -322,7 +322,7 @@ ${submenuLinksHtml(allEntries, "")}
             <a class="auth-link auth-link-primary" href="../login.html">התחברות</a>
           </div>
           <div class="auth-area" id="auth-area-in" hidden="">
-            <span class="score-badge" id="score-badge" hidden=""></span>
+            <a class="score-badge" id="score-badge" href="../achievements.html" hidden=""></a>
             <span class="auth-user-name" id="auth-user-name"></span>
             <a class="dropdown-item" href="../admin.html" id="admin-panel-link" hidden="">פאנל עריכה</a>
             <button type="button" class="auth-link auth-link-primary" id="logout-btn">התנתקות</button>
@@ -330,6 +330,7 @@ ${submenuLinksHtml(allEntries, "")}
         </div>
       </div>
     </div>
+    <div class="reading-progress" id="reading-progress"><span class="reading-progress-fill" id="reading-progress-fill"></span></div>
   </header>
 
   <main class="wrap" style="padding-top: 34px;">
@@ -346,6 +347,7 @@ ${submenuLinksHtml(allEntries, "")}
   <footer class="site-footer"></footer>
 
   <script src="../assets/js/main.js?v=2"></script>
+  <script src="../assets/js/reading-progress.js"></script>
   <script type="module" src="../assets/js/header-auth.js?v=1"></script>
   <script type="module" src="../assets/js/score.js"></script>
   <script type="module" src="../assets/js/quiz.js?v=12"></script>
@@ -360,6 +362,7 @@ function renderNewGroupPanelHtml(sourceText, lessonId, titleText) {
       <div class="group-panel">
         <button type="button" class="group-title dropdown-trigger">
           <span>${source}</span>
+          <span class="group-progress" hidden></span>
           <svg class="group-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <div class="dropdown-menu lessons-menu">
@@ -430,7 +433,7 @@ async function rebuildAllPagesForOrder({ $index, indexCurrent, groups, token, co
     },
   });
 
-  for (const page of ["login.html", "register.html", "admin.html"]) {
+  for (const page of ["login.html", "register.html", "admin.html", "achievements.html"]) {
     const path = `contents/${page}`;
     const current = await githubRequest(`${path}?ref=${REPO_BRANCH}`, { token });
     const html = Buffer.from(current.content, "base64").toString("utf8");
