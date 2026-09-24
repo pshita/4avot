@@ -298,7 +298,7 @@ function renderNewLessonHtml({ lessonId, titleText, sourceText, prevId, allEntri
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
   <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&amp;family=Heebo:wght@300;400;600&amp;family=Rubik:wght@400;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/css/style.css?v=43">
+  <link rel="stylesheet" href="../assets/css/style.css?v=44">
 </head>
 <body>
   <header class="site-header">

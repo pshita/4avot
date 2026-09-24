@@ -419,20 +419,24 @@ button.dropdown-item {
   margin: 20px 0 34px;
   box-shadow: var(--shadow);
 }
-.intro-box h2 {
-  font-size: 1.3rem;
-  margin-bottom: 16px;
-  padding-bottom: 10px;
-  border-bottom: 3px solid var(--accent);
+/* Headings sit on a full-width accent banner, like a chapter title in a
+   colorful textbook, instead of the old bottom-border underline. The
+   negative inline margin always escapes .intro-box's own side padding so
+   the banner reaches the box's edges; a heading that opens the box (its
+   literal first child) also escapes the top padding and picks up the
+   box's own corner radius so the banner sits flush with it. */
+.intro-box h2, .intro-box h3 {
+  color: #fff;
+  background: var(--accent);
+  margin: 24px -22px 16px;
+  padding: 14px 22px;
 }
-.intro-box h3 {
-  font-size: 1.2rem;
-  margin: 24px 0 10px;
-  padding-bottom: 7px;
-  color: var(--accent-strong);
-  border-bottom: 2px solid color-mix(in srgb, var(--accent) 65%, transparent 35%);
+.intro-box h2 { font-size: 1.3rem; }
+.intro-box h3 { font-size: 1.15rem; padding-block: 11px; margin-bottom: 12px; }
+.intro-box h2:first-child, .intro-box h3:first-child {
+  margin-top: -20px;
+  border-radius: var(--radius) var(--radius) 0 0;
 }
-.intro-box h3:first-of-type { margin-top: 8px; }
 .intro-box p { margin: 0 0 10px; }
 
 .table-scroll {
@@ -627,36 +631,18 @@ button.dropdown-item {
 /* Consecutive content paragraphs merge into one continuous band instead of
    showing a gap of page background between them. */
 .p-strong + .p-strong { margin-top: -10px; }
-/* A heading directly followed by a content paragraph joins its band: same
-   tinted background and horizontal extent, its own bottom margin zeroed
-   out (the paragraph's top margin is already 0) so the two sit flush with
-   no color break between them. The heading's usual top margin is left
-   alone, so spacing above the band is unaffected. Some lessons still wrap
-   their paragraphs in a legacy .cgroup div (from an earlier version of the
-   site) instead of the heading being directly followed by the <p> - the
-   second selector in each pair catches that case too. */
-.intro-box h2:has(+ .p-strong),
-.intro-box h3:has(+ .p-strong),
-.intro-box h2:has(+ .cgroup > .p-strong:first-child),
-.intro-box h3:has(+ .cgroup > .p-strong:first-child) {
-  background: var(--accent-faint);
-  padding-inline: 12px;
-  margin-inline: -12px;
-  padding-block: 10px;
-  margin-bottom: 0;
-  border-start-start-radius: 8px;
-  border-start-end-radius: 8px;
-}
-/* Rounded corners on the band itself: only at its true start and end, not
-   at every paragraph's edge, so consecutive .p-strong paragraphs (and a
-   merged heading above them) still read as one continuous block rather
-   than a stack of separate pills. A paragraph is "the start" when nothing
-   above it is already part of the band (no .p-strong right before it, and
-   no merged heading - that case is handled by the rule above instead); a
+/* Headings no longer merge into the paragraph band below them - each now
+   carries its own solid banner (see .intro-box h2/h3 above), which already
+   reads as a clear division on its own. A paragraph right after a heading
+   rounds its own top corner same as any other band start.
+   Rounded corners on the band itself: only at its true start and end, not
+   at every paragraph's edge, so consecutive .p-strong paragraphs still
+   read as one continuous block rather than a stack of separate pills. A
+   paragraph is "the start" when no .p-strong immediately precedes it; a
    paragraph is "the end" when no .p-strong immediately follows it. Either
    can be true alone (rounding just that side) or both at once (a lone
    paragraph with no neighbors, rounded on all four corners). */
-.intro-box .p-strong:not(.p-strong + .p-strong):not(h2 + .p-strong):not(h3 + .p-strong):not(.cgroup > .p-strong:first-child) {
+.intro-box .p-strong:not(.p-strong + .p-strong) {
   border-start-start-radius: 8px;
   border-start-end-radius: 8px;
 }
@@ -924,12 +910,14 @@ footer.site-footer {
 
 .lesson-nav {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  /* Grouped together (not spread to the container's edges) and with no
+     gap, so the asymmetric corners on the two buttons below actually
+     meet and read as one connected pill split into two halves. */
+  justify-content: center;
+  gap: 0;
   flex-wrap: wrap;
   margin: 34px 0 10px;
 }
-.lesson-nav.single { justify-content: center; }
 .lesson-nav-btn {
   display: inline-block;
   font-family: inherit;
@@ -937,20 +925,35 @@ footer.site-footer {
   font-size: 1rem;
   text-decoration: none;
   padding: 12px 28px;
-  border-radius: 999px;
   background: var(--accent);
   color: #fff;
   transition: opacity .15s ease, transform .15s ease;
+  /* Asymmetric corners: round on the outer edge, square on the edge
+     facing the other button, so the prev/next pair reads as one
+     connected unit instead of two separate pills. This one (next, not
+     --secondary) sits on the inline-end side of the pair. */
+  border-radius: 0;
+  border-start-end-radius: 999px;
+  border-end-end-radius: 999px;
 }
 /* The site is RTL-only, so "next" (this button, not --secondary) always
    sits visually on the left and "prev" on the right - each nudges a
    little further the way it already points, on hover. */
 .lesson-nav-btn:hover { opacity: .9; transform: translateX(-4px); }
+/* A lone button (first/last lesson) has no partner to connect to, so it
+   gets its full pill shape back. */
+.lesson-nav.single .lesson-nav-btn { border-radius: 999px; }
 .lesson-nav-btn--secondary {
   background: none;
   border: 1px solid var(--line);
   color: var(--ink);
+  /* This one (prev) sits on the inline-start side of the pair, so it
+     rounds the opposite corners from .lesson-nav-btn above. */
+  border-radius: 0;
+  border-start-start-radius: 999px;
+  border-end-start-radius: 999px;
 }
+.lesson-nav.single .lesson-nav-btn--secondary { border-radius: 999px; }
 .lesson-nav-btn--secondary:hover {
   opacity: 1;
   transform: translateX(4px);
