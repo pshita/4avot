@@ -963,3 +963,182 @@ footer.site-footer {
 @media (prefers-reduced-motion: reduce) {
   .lesson-nav-btn:hover, .lesson-nav-btn--secondary:hover { transform: none; }
 }
+
+/* ===========================================================
+   Inline admin editor - only ever created for the one
+   authorized account (content-editor.js checks this before
+   adding any of it), so none of this is seen by readers.
+   =========================================================== */
+
+.ed-editable:hover { outline: 1px dashed var(--accent); outline-offset: 2px; cursor: text; }
+.ed-editable:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ed-quiz-block:hover { outline: 1px dashed var(--accent); outline-offset: 3px; border-radius: 10px; }
+.ed-quiz-editing { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 10px; }
+
+.ed-status {
+  position: fixed;
+  bottom: 14px;
+  inset-inline-end: 14px;
+  z-index: 500;
+  font-family: var(--font-body);
+  font-size: .8rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  box-shadow: var(--shadow);
+}
+.ed-status-saving { color: var(--ink-soft); }
+.ed-status-saved { color: #3a7d44; }
+.ed-status-error { color: #b23b3b; }
+
+.ed-toolbar {
+  position: absolute;
+  z-index: 600;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--ink);
+  box-shadow: var(--shadow);
+}
+.ed-ctrl-btn {
+  font-family: var(--font-body);
+  font-size: .78rem;
+  font-weight: 700;
+  line-height: 1;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+.ed-ctrl-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.ed-ctrl-active { background: var(--accent); }
+.ed-ctrl-del:hover { background: #b23b3b; }
+.ed-ctrl-style { font-size: .72rem; }
+
+.ed-add-wrap { position: relative; display: inline-flex; }
+.ed-add-flyout {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 601;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+  padding: 5px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+.ed-add-option {
+  font-family: var(--font-body);
+  font-size: .82rem;
+  text-align: right;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.ed-add-option:hover { background: var(--accent-soft); }
+
+.ed-new-box-row,
+.ed-new-lesson-tile {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0 20px;
+}
+.ed-add-toggle {
+  font-family: var(--font-body);
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--accent-strong);
+  background: none;
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  padding: 7px 16px;
+  cursor: pointer;
+}
+.ed-add-toggle:hover { border-color: var(--accent); }
+
+.ed-new-lesson-tile { flex-direction: column; align-items: center; }
+.ed-new-lesson-form {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 360px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+}
+.ed-new-lesson-form label {
+  display: block;
+  font-size: .8rem;
+  color: var(--ink-soft);
+  margin-bottom: 10px;
+}
+.ed-new-lesson-form input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: .9rem;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.ed-new-lesson-actions { display: flex; gap: 8px; }
+.ed-field-status { margin: 8px 0 0; font-size: .8rem; color: #b23b3b; }
+
+.ed-bubble {
+  position: absolute;
+  z-index: 600;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--ink);
+  box-shadow: var(--shadow);
+  transform: translateX(-50%);
+}
+.ed-bubble-btn {
+  font-family: var(--font-body);
+  font-size: .76rem;
+  font-weight: 700;
+  color: #fff;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.ed-bubble-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.ed-bubble-italic { font-style: italic; }
+
+.ed-quiz-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-inline-end: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--bg-elevated);
+  vertical-align: middle;
+  cursor: pointer;
+}
+.ed-quiz-dot-correct { background: #3a7d44; border-color: #3a7d44; }
+.ed-quiz-text { outline: none; }
+
+.ed-busy { opacity: .5; pointer-events: none; }
