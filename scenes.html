@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>בחירת שיעור | ארבעה אבות</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Heebo:wght@300;400;600&family=Rubik:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css?v=45" />
+  <link rel="preload" as="image" href="assets/media/scene-1.jpg" />
+  <style>
+    .scenes-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+    .scenes-stage {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: #1d1710;
+      box-shadow: var(--shadow);
+      aspect-ratio: 16 / 9;
+      max-height: 78vh;
+      width: 100%;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: pan-y;
+    }
+    .scenes-video, .scenes-still {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .scenes-still { transition: opacity .35s ease; }
+    .scenes-cut {
+      position: absolute; inset: 0;
+      background: #1d1710;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease;
+    }
+    .scenes-stage.is-cutting .scenes-cut { opacity: 1; }
+
+    /* top + bottom scrims so white type stays legible over a bright sky / sand */
+    .scenes-shade {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        linear-gradient(to bottom, rgba(20, 14, 8, .55) 0%, rgba(20, 14, 8, 0) 22%),
+        linear-gradient(to top, rgba(20, 14, 8, .88) 0%, rgba(20, 14, 8, .55) 30%, rgba(20, 14, 8, 0) 62%);
+    }
+
+    .scenes-tabs {
+      position: absolute; top: 14px; inset-inline: 14px;
+      display: flex; gap: 8px;
+      z-index: 2;
+    }
+    .scenes-tab {
+      flex: 1 1 0;
+      min-width: 0;
+      font-family: var(--font-head);
+      font-size: .82rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, .78);
+      background: none;
+      border: none;
+      padding: 0 0 8px;
+      text-align: start;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .scenes-tab .bar {
+      display: block;
+      height: 3px;
+      margin-bottom: 7px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, .3);
+      overflow: hidden;
+    }
+    .scenes-tab .fill {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: #fff;
+      border-radius: inherit;
+    }
+    .scenes-tab.is-active { color: #fff; }
+    .scenes-tab:focus-visible { outline: 2px solid #fff; outline-offset: 3px; border-radius: 4px; }
+
+    .scenes-card {
+      position: absolute; inset-inline: 0; bottom: 0;
+      padding: 22px 26px 24px;
+      color: #fff;
+      z-index: 2;
+      transition: opacity .35s ease, transform .35s ease;
+    }
+    .scenes-stage.is-moving .scenes-card { opacity: 0; transform: translateY(10px); pointer-events: none; }
+    .scenes-kicker {
+      margin: 0 0 4px;
+      font-size: .82rem;
+      letter-spacing: .02em;
+      color: rgba(255, 255, 255, .8);
+    }
+    .scenes-title {
+      margin: 0 0 6px;
+      font-family: var(--font-head);
+      font-weight: 700;
+      font-size: clamp(1.5rem, 4vw, 2.4rem);
+      line-height: 1.15;
+      color: #fff;
+      text-wrap: balance;
+      text-shadow: 0 2px 14px rgba(0, 0, 0, .35);
+    }
+    .scenes-blurb {
+      margin: 0 0 16px;
+      max-width: 52ch;
+      font-size: clamp(.9rem, 1.8vw, 1.02rem);
+      line-height: 1.5;
+      color: rgba(255, 255, 255, .9);
+    }
+    .scenes-go {
+      display: inline-block;
+      text-decoration: none;
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: .95rem;
+      padding: 11px 22px;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--accent-strong);
+      box-shadow: 0 3px 0 rgba(0, 0, 0, .25);
+    }
+    .scenes-go:hover { opacity: .92; }
+
+    .scenes-arrow {
+      position: absolute; top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, .35);
+      background: rgba(20, 14, 8, .35);
+      color: #fff;
+      display: grid; place-items: center;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      transition: background .2s ease, opacity .2s ease;
+    }
+    .scenes-arrow:hover { background: rgba(20, 14, 8, .6); }
+    .scenes-arrow:disabled { opacity: 0; pointer-events: none; }
+    .scenes-arrow svg { width: 20px; height: 20px; }
+    /* RTL: "next" sits on the left, "prev" on the right */
+    .scenes-next { left: 14px; }
+    .scenes-prev { right: 14px; }
+
+    .scenes-note {
+      margin: 14px 2px 0;
+      font-size: .85rem;
+      color: var(--ink-soft);
+    }
+
+    @media (max-width: 640px) {
+      .scenes-wrap { padding: 14px 12px 32px; }
+      .scenes-stage { aspect-ratio: 3 / 4; max-height: 76vh; }
+      .scenes-card { padding: 18px 18px 20px; }
+      .scenes-arrow { top: 42%; width: 40px; height: 40px; }
+      .scenes-tab { font-size: .74rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .scenes-card, .scenes-still, .scenes-cut { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <div class="dropdown brand-dropdown">
+        <button type="button" class="brand dropdown-trigger">
+          <span class="mark">📖</span>
+          <span>פשיטא</span>
+        </button>
+        <div class="dropdown-menu brand-menu" hidden>
+          <div class="submenu">
+            <button type="button" class="dropdown-item submenu-trigger">
+              <span>ארבעה אבות</span>
+              <svg class="submenu-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div class="dropdown-menu submenu-panel" hidden>
+            <a class="dropdown-item" href="lessons/avot-vetoldot.html">״אבות נזיקין״</a>
+            <a class="dropdown-item" href="lessons/shor-umave.html">״השור, הבור, המבעה וההבער״</a>
+            <a class="dropdown-item" href="lessons/lo-hari-hashor.html">״לא הרי השור כהרי המבעה״</a>
+            <a class="dropdown-item" href="lessons/gabei-shabbat-tanan.html">״גבי שבת תנן״</a>
+            <a class="dropdown-item" href="lessons/umai-ika.html">״ומאי איכא בין אב לתולדה״</a>
+            <a class="dropdown-item" href="lessons/gabei-tumaot-tanan.html">״גבי טומאות תנן״</a>
+            <a class="dropdown-item" href="lessons/shlosha-avot-beshor.html">״ת"ר: ג' אבות נאמרו בשור״</a>
+            <a class="dropdown-item" href="lessons/keren-manlan.html">״קרן מנלן״</a>
+            <a class="dropdown-item" href="lessons/toldah-dekeren.html">״תולדה דקרן״</a>
+            <a class="dropdown-item" href="lessons/mai-shena-negicha.html">״מאי שנא נגיחה״</a>
+            <a class="dropdown-item" href="lessons/mai-shena-gabei-adam.html">״מאי שנא גבי אדם״</a>
+            <a class="dropdown-item" href="lessons/muad-livhema.html">״מועד לבהמה״</a>
+            </div>
+          </div>
+          <div class="auth-area" id="auth-area-out">
+            <a class="auth-link auth-link-primary" href="login.html">התחברות</a>
+          </div>
+          <div class="auth-area" id="auth-area-in" hidden>
+            <a class="score-badge" id="score-badge" href="achievements.html" hidden></a>
+            <span class="auth-user-name" id="auth-user-name"></span>
+            <button type="button" class="auth-link auth-link-primary" id="logout-btn">התנתקות</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="scenes-wrap">
+    <section class="scenes-stage is-moving" id="scenes-stage" aria-roledescription="carousel" aria-label="בחירת שיעור">
+      <video class="scenes-video" id="scenes-video" muted playsinline preload="auto" poster="assets/media/scene-1.jpg" aria-hidden="true">
+        <source src="assets/media/scenes.mp4" type="video/mp4" />
+        <source src="assets/media/scenes.webm" type="video/webm" />
+      </video>
+      <img class="scenes-still" id="scenes-still" src="assets/media/scene-1.jpg" alt="" hidden />
+      <div class="scenes-cut"></div>
+      <div class="scenes-shade"></div>
+
+      <div class="scenes-tabs" id="scenes-tabs" role="tablist"></div>
+
+      <button type="button" class="scenes-arrow scenes-prev" id="scenes-prev" aria-label="לשיעור הקודם">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" class="scenes-arrow scenes-next" id="scenes-next" aria-label="לשיעור הבא">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+      <div class="scenes-card" aria-live="polite">
+        <p class="scenes-kicker" id="scenes-kicker"></p>
+        <h2 class="scenes-title" id="scenes-title"></h2>
+        <p class="scenes-blurb" id="scenes-blurb"></p>
+        <a class="scenes-go" id="scenes-go" href="#">כניסה לשיעור</a>
+      </div>
+    </section>
+    <p class="scenes-note">דף ב, עמוד ב · שלושת השיעורים האחרונים</p>
+  </main>
+
+  <footer class="site-footer"></footer>
+
+  <script>
+  (function () {
+    // Each lesson owns one stretch of the single fly-through video: playing
+    // [start, stop] is its "arrival", and the video pauses on its last frame.
+    // Consecutive stretches meet at the cuts in the footage, so going
+    // forward one lesson just keeps playing from where it paused.
+    var SCENES = [
+      {
+        id: "mai-shena-negicha",
+        title: "״מאי שנא נגיחה״",
+        blurb: "נגיחה ונגיפה - מה ההבדל ביניהן, ולמה שתיהן שייכות למזיק קרן.",
+        still: "assets/media/scene-1.jpg",
+        start: 0, stop: 2.45
+      },
+      {
+        id: "mai-shena-gabei-adam",
+        title: "״מאי שנא גבי אדם״",
+        blurb: "למה אדם נפגע בדרך כלל מנגיחה, ובעל חי מדחיפה עם הקרן.",
+        still: "assets/media/scene-2.jpg",
+        start: 2.62, stop: 7.2
+      },
+      {
+        id: "muad-livhema",
+        title: "״מועד לבהמה״",
+        blurb: "שור שהזיק שלוש פעמים - למי הוא נעשה מועד, ולמי עדיין לא.",
+        still: "assets/media/scene-3.jpg",
+        start: 7.42, stop: 9.95
+      }
+    ];
+
+    var stage = document.getElementById("scenes-stage");
+    var video = document.getElementById("scenes-video");
+    var still = document.getElementById("scenes-still");
+    var tabsEl = document.getElementById("scenes-tabs");
+    var prevBtn = document.getElementById("scenes-prev");
+    var nextBtn = document.getElementById("scenes-next");
+    var kickerEl = document.getElementById("scenes-kicker");
+    var titleEl = document.getElementById("scenes-title");
+    var blurbEl = document.getElementById("scenes-blurb");
+    var goEl = document.getElementById("scenes-go");
+
+    var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var current = -1;
+    var target = -1;
+    var rafId = null;
+    var videoUsable = !reduceMotion;
+
+    var tabs = SCENES.map(function (s, i) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "scenes-tab";
+      b.setAttribute("role", "tab");
+      b.innerHTML = '<span class="bar"><span class="fill"></span></span>';
+      b.appendChild(document.createTextNode(s.title));
+      b.addEventListener("click", function () { goTo(i); });
+      tabsEl.appendChild(b);
+      return b;
+    });
+
+    function setFill(i, ratio) {
+      tabs[i].querySelector(".fill").style.width = Math.max(0, Math.min(1, ratio)) * 100 + "%";
+    }
+
+    function renderTabs() {
+      tabs.forEach(function (t, i) {
+        var active = i === target;
+        t.classList.toggle("is-active", active);
+        t.setAttribute("aria-selected", active ? "true" : "false");
+        if (i < target) setFill(i, 1);
+        if (i > target) setFill(i, 0);
+      });
+      prevBtn.disabled = target <= 0;
+      nextBtn.disabled = target >= SCENES.length - 1;
+    }
+
+    function showCard(i) {
+      var s = SCENES[i];
+      kickerEl.textContent = "שיעור " + (i + 1) + " מתוך " + SCENES.length;
+      titleEl.textContent = s.title;
+      blurbEl.textContent = s.blurb;
+      goEl.href = "lessons/" + s.id + ".html";
+      stage.classList.remove("is-moving");
+    }
+
+    function arrive(i) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+      current = i;
+      setFill(i, 1);
+      showCard(i);
+    }
+
+    function useStills() {
+      videoUsable = false;
+      video.hidden = true;
+      still.hidden = false;
+    }
+
+    function watch(i) {
+      var s = SCENES[i];
+      cancelAnimationFrame(rafId);
+      (function tick() {
+        var t = video.currentTime;
+        setFill(i, (t - s.start) / (s.stop - s.start));
+        if (t >= s.stop - 0.02 || video.ended) {
+          video.pause();
+          arrive(i);
+          return;
+        }
+        rafId = requestAnimationFrame(tick);
+      })();
+    }
+
+    function playFrom(i, seekFirst) {
+      var s = SCENES[i];
+      var p;
+      if (seekFirst) video.currentTime = s.start;
+      p = video.play();
+      if (p && p.catch) {
+        p.catch(function () {
+          // Autoplay blocked (e.g. low-power mode) - fall back to the
+          // still frame for this lesson; a tap on a tab/arrow is a user
+          // gesture and will play the video normally from then on.
+          if (current === -1) {
+            still.src = s.still;
+            still.hidden = false;
+            arrive(i);
+          }
+        });
+      }
+      watch(i);
+    }
+
+    function goTo(i) {
+      if (i < 0 || i >= SCENES.length) return;
+      if (i === target && rafId === null && current === i) return;
+      target = i;
+      stage.classList.add("is-moving");
+      renderTabs();
+
+      if (!videoUsable) {
+        still.style.opacity = "0";
+        setTimeout(function () {
+          still.src = SCENES[i].still;
+          still.style.opacity = "1";
+          arrive(i);
+        }, reduceMotion ? 0 : 200);
+        return;
+      }
+
+      still.hidden = true;
+      var prev = SCENES[i - 1];
+      var continuous = prev && current === i - 1 && Math.abs(video.currentTime - prev.stop) < 0.3;
+      if (continuous) {
+        playFrom(i, false);
+        return;
+      }
+      // Any other jump (backwards, or skipping a lesson): a quick dip to
+      // dark hides the seek, then this lesson's own stretch plays in.
+      video.pause();
+      stage.classList.add("is-cutting");
+      setTimeout(function () {
+        video.currentTime = SCENES[i].start;
+        stage.classList.remove("is-cutting");
+        playFrom(i, false);
+      }, 190);
+    }
+
+    prevBtn.addEventListener("click", function () { goTo(target - 1); });
+    nextBtn.addEventListener("click", function () { goTo(target + 1); });
+
+    stage.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowLeft") { e.preventDefault(); goTo(target + 1); }
+      if (e.key === "ArrowRight") { e.preventDefault(); goTo(target - 1); }
+    });
+
+    var touchX = null;
+    stage.addEventListener("touchstart", function (e) { touchX = e.touches[0].clientX; }, { passive: true });
+    stage.addEventListener("touchend", function (e) {
+      if (touchX === null) return;
+      var dx = e.changedTouches[0].clientX - touchX;
+      touchX = null;
+      if (Math.abs(dx) < 50) return;
+      // RTL: the next lesson sits to the left, so dragging it in means
+      // swiping rightward.
+      goTo(dx > 0 ? target + 1 : target - 1);
+    });
+
+    video.addEventListener("error", useStills);
+    var lastSource = video.querySelector("source:last-of-type");
+    if (lastSource) lastSource.addEventListener("error", useStills);
+
+    if (!videoUsable) useStills();
+    goTo(0);
+  })();
+  </script>
+  <script src="assets/js/main.js?v=2"></script>
+  <script type="module" src="assets/js/header-auth.js?v=1"></script>
+  <script type="module" src="assets/js/score.js"></script>
+</body>
+</html>
